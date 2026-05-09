@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace BjTheCod3r\Spotify\Resources;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 final class Album extends Resource
 {
     /**
      * @param array<string, string> $externalUrls
-     * @param array<int, Image> $images
-     * @param array<int, Artist> $artists
+     * @param Collection<int, Image> $images
+     * @param Collection<int, Artist> $artists
      */
     public function __construct(
         public readonly string $id,
@@ -24,8 +25,8 @@ final class Album extends Resource
         public readonly ?Carbon $releaseDate,
         public readonly ?string $releaseDatePrecision,
         public readonly array $externalUrls,
-        public readonly array $images,
-        public readonly array $artists,
+        public readonly Collection $images,
+        public readonly Collection $artists,
     ) {
     }
 
@@ -54,20 +55,17 @@ final class Album extends Resource
     }
 
     /**
-     * @param array<int, array<string, mixed>>|mixed $data
-     *
-     * @return array<int, self>
+     * @return Collection<int, self>
      */
-    public static function collection(mixed $data): array
+    public static function collection(mixed $data): Collection
     {
         if (! is_array($data)) {
-            return [];
+            return collect();
         }
 
-        return array_values(array_map(
-            static fn (mixed $item): self => self::fromArray(is_array($item) ? $item : []),
-            $data,
-        ));
+        return collect($data)
+            ->map(static fn (mixed $item): self => self::fromArray(is_array($item) ? $item : []))
+            ->values();
     }
 
     /**
@@ -86,8 +84,8 @@ final class Album extends Resource
             'release_date' => self::formatDate($this->releaseDate, $this->releaseDatePrecision),
             'release_date_precision' => $this->releaseDatePrecision,
             'external_urls' => $this->externalUrls,
-            'images' => array_map(static fn (Image $i): array => $i->toArray(), $this->images),
-            'artists' => array_map(static fn (Artist $a): array => $a->toArray(), $this->artists),
+            'images' => $this->images->toArray(),
+            'artists' => $this->artists->toArray(),
         ];
     }
 }

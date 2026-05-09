@@ -153,7 +153,7 @@ it('parses album release dates as Carbon at all three precisions', function (): 
 
     $albums = Spotify::searchAlbums('any')->get();
 
-    [$day, $month, $year, $missing] = $albums->items;
+    [$day, $month, $year, $missing] = $albums->items->all();
 
     expect($day->releaseDate)->toBeInstanceOf(Carbon::class)
         ->and($day->releaseDate->format('Y-m-d'))->toBe('1959-08-17')

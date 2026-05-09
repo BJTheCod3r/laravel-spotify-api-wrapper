@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace BjTheCod3r\Spotify\Resources;
 
+use Illuminate\Support\Collection;
+
 final class Track extends Resource
 {
     /**
      * @param array<string, string> $externalUrls
      * @param array<string, string> $externalIds
-     * @param array<int, Artist> $artists
+     * @param Collection<int, Artist> $artists
      */
     public function __construct(
         public readonly string $id,
@@ -27,7 +29,7 @@ final class Track extends Resource
         public readonly array $externalUrls,
         public readonly array $externalIds,
         public readonly ?Album $album,
-        public readonly array $artists,
+        public readonly Collection $artists,
     ) {
     }
 
@@ -85,7 +87,7 @@ final class Track extends Resource
             'external_urls' => $this->externalUrls,
             'external_ids' => $this->externalIds,
             'album' => $this->album?->toArray(),
-            'artists' => array_map(static fn (Artist $a): array => $a->toArray(), $this->artists),
+            'artists' => $this->artists->toArray(),
         ];
     }
 }

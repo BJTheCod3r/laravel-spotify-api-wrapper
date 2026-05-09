@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace BjTheCod3r\Spotify\Resources;
 
+use Illuminate\Support\Collection;
+
 final class Audiobook extends Resource
 {
     /**
      * @param array<string, string> $externalUrls
-     * @param array<int, Image> $images
-     * @param array<int, string> $authors
-     * @param array<int, string> $narrators
-     * @param array<int, string> $languages
+     * @param Collection<int, Image> $images
+     * @param Collection<int, Author> $authors
+     * @param Collection<int, Narrator> $narrators
+     * @param Collection<int, string> $languages
      */
     public function __construct(
         public readonly string $id,
@@ -26,10 +28,10 @@ final class Audiobook extends Resource
         public readonly ?string $publisher,
         public readonly ?int $totalChapters,
         public readonly array $externalUrls,
-        public readonly array $images,
-        public readonly array $authors,
-        public readonly array $narrators,
-        public readonly array $languages,
+        public readonly Collection $images,
+        public readonly Collection $authors,
+        public readonly Collection $narrators,
+        public readonly Collection $languages,
     ) {
     }
 
@@ -55,36 +57,12 @@ final class Audiobook extends Resource
             totalChapters: self::int($data['total_chapters'] ?? null),
             externalUrls: $externalUrls,
             images: Image::collection($data['images'] ?? []),
-            authors: self::namedList($data['authors'] ?? []),
-            narrators: self::namedList($data['narrators'] ?? []),
-            languages: array_values(array_filter(
-                self::arr($data['languages'] ?? []),
-                static fn (mixed $l): bool => is_string($l),
-            )),
+            authors: Author::collection($data['authors'] ?? []),
+            narrators: Narrator::collection($data['narrators'] ?? []),
+            languages: collect(self::arr($data['languages'] ?? []))
+                ->filter(static fn (mixed $l): bool => is_string($l))
+                ->values(),
         );
-    }
-
-    /**
-     * Spotify returns authors/narrators as `[{ "name": "..." }, ...]`.
-     * Flatten to a list of names.
-     *
-     * @return array<int, string>
-     */
-    private static function namedList(mixed $data): array
-    {
-        if (! is_array($data)) {
-            return [];
-        }
-
-        $names = [];
-
-        foreach ($data as $entry) {
-            if (is_array($entry) && isset($entry['name'])) {
-                $names[] = (string) $entry['name'];
-            }
-        }
-
-        return $names;
     }
 
     /**
@@ -105,10 +83,10 @@ final class Audiobook extends Resource
             'publisher' => $this->publisher,
             'total_chapters' => $this->totalChapters,
             'external_urls' => $this->externalUrls,
-            'images' => array_map(static fn (Image $i): array => $i->toArray(), $this->images),
-            'authors' => $this->authors,
-            'narrators' => $this->narrators,
-            'languages' => $this->languages,
+            'images' => $this->images->toArray(),
+            'authors' => $this->authors->toArray(),
+            'narrators' => $this->narrators->toArray(),
+            'languages' => $this->languages->toArray(),
         ];
     }
 }

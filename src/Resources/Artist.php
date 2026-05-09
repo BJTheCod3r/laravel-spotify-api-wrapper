@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace BjTheCod3r\Spotify\Resources;
 
+use Illuminate\Support\Collection;
+
 final class Artist extends Resource
 {
     /**
      * @param array<string, string> $externalUrls
-     * @param array<int, string> $genres
-     * @param array<int, Image> $images
+     * @param Collection<int, string> $genres
+     * @param Collection<int, Image> $images
      */
     public function __construct(
         public readonly string $id,
@@ -18,10 +20,10 @@ final class Artist extends Resource
         public readonly string $uri,
         public readonly string $type,
         public readonly array $externalUrls,
-        public readonly array $genres,
-        public readonly array $images,
+        public readonly Collection $genres,
+        public readonly Collection $images,
         public readonly ?int $popularity,
-        public readonly ?int $followersTotal,
+        public readonly ?Followers $followers,
     ) {
     }
 
@@ -33,13 +35,7 @@ final class Artist extends Resource
         /** @var array<string, string> $externalUrls */
         $externalUrls = self::arr($data['external_urls'] ?? []);
 
-        $followers = self::arr($data['followers'] ?? []);
-
-        /** @var array<int, string> $genres */
-        $genres = array_values(array_filter(
-            self::arr($data['genres'] ?? []),
-            static fn (mixed $g): bool => is_string($g),
-        ));
+        $rawFollowers = $data['followers'] ?? null;
 
         return new self(
             id: (string) ($data['id'] ?? ''),
@@ -48,28 +44,27 @@ final class Artist extends Resource
             uri: (string) ($data['uri'] ?? ''),
             type: (string) ($data['type'] ?? 'artist'),
             externalUrls: $externalUrls,
-            genres: $genres,
+            genres: collect(self::arr($data['genres'] ?? []))
+                ->filter(static fn (mixed $g): bool => is_string($g))
+                ->values(),
             images: Image::collection($data['images'] ?? []),
             popularity: self::int($data['popularity'] ?? null),
-            followersTotal: self::int($followers['total'] ?? null),
+            followers: is_array($rawFollowers) ? Followers::fromArray($rawFollowers) : null,
         );
     }
 
     /**
-     * @param array<int, array<string, mixed>>|mixed $data
-     *
-     * @return array<int, self>
+     * @return Collection<int, self>
      */
-    public static function collection(mixed $data): array
+    public static function collection(mixed $data): Collection
     {
         if (! is_array($data)) {
-            return [];
+            return collect();
         }
 
-        return array_values(array_map(
-            static fn (mixed $item): self => self::fromArray(is_array($item) ? $item : []),
-            $data,
-        ));
+        return collect($data)
+            ->map(static fn (mixed $item): self => self::fromArray(is_array($item) ? $item : []))
+            ->values();
     }
 
     /**
@@ -84,10 +79,10 @@ final class Artist extends Resource
             'uri' => $this->uri,
             'type' => $this->type,
             'external_urls' => $this->externalUrls,
-            'genres' => $this->genres,
-            'images' => array_map(static fn (Image $i): array => $i->toArray(), $this->images),
+            'genres' => $this->genres->toArray(),
+            'images' => $this->images->toArray(),
             'popularity' => $this->popularity,
-            'followers_total' => $this->followersTotal,
+            'followers' => $this->followers?->toArray(),
         ];
     }
 }

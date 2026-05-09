@@ -6,12 +6,10 @@ namespace BjTheCod3r\Spotify\Resources;
 
 use Illuminate\Support\Collection;
 
-final class Image extends Resource
+final class Narrator extends Resource
 {
     public function __construct(
-        public readonly string $url,
-        public readonly ?int $height,
-        public readonly ?int $width,
+        public readonly string $name,
     ) {
     }
 
@@ -21,9 +19,7 @@ final class Image extends Resource
     public static function fromArray(array $data): self
     {
         return new self(
-            url: (string) ($data['url'] ?? ''),
-            height: self::int($data['height'] ?? null),
-            width: self::int($data['width'] ?? null),
+            name: (string) ($data['name'] ?? ''),
         );
     }
 
@@ -37,7 +33,8 @@ final class Image extends Resource
         }
 
         return collect($data)
-            ->map(static fn (mixed $item): self => self::fromArray(is_array($item) ? $item : []))
+            ->filter(static fn (mixed $entry): bool => is_array($entry))
+            ->map(static fn (array $entry): self => self::fromArray($entry))
             ->values();
     }
 
@@ -47,9 +44,7 @@ final class Image extends Resource
     public function toArray(): array
     {
         return [
-            'url' => $this->url,
-            'height' => $this->height,
-            'width' => $this->width,
+            'name' => $this->name,
         ];
     }
 }

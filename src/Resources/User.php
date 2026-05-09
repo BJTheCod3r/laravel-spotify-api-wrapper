@@ -6,7 +6,7 @@ namespace BjTheCod3r\Spotify\Resources;
 
 use Illuminate\Support\Collection;
 
-final class Playlist extends Resource
+final class User extends Resource
 {
     /**
      * @param array<string, string> $externalUrls
@@ -14,18 +14,13 @@ final class Playlist extends Resource
      */
     public function __construct(
         public readonly string $id,
-        public readonly string $name,
+        public readonly ?string $displayName,
         public readonly string $href,
         public readonly string $uri,
         public readonly string $type,
-        public readonly ?string $description,
-        public readonly ?bool $public,
-        public readonly ?bool $collaborative,
-        public readonly ?string $snapshotId,
         public readonly array $externalUrls,
         public readonly Collection $images,
-        public readonly ?User $owner,
-        public readonly ?TracksLink $tracks,
+        public readonly ?Followers $followers,
     ) {
     }
 
@@ -37,23 +32,17 @@ final class Playlist extends Resource
         /** @var array<string, string> $externalUrls */
         $externalUrls = self::arr($data['external_urls'] ?? []);
 
-        $rawOwner = $data['owner'] ?? null;
-        $rawTracks = $data['tracks'] ?? null;
+        $rawFollowers = $data['followers'] ?? null;
 
         return new self(
             id: (string) ($data['id'] ?? ''),
-            name: (string) ($data['name'] ?? ''),
+            displayName: self::str($data['display_name'] ?? null),
             href: (string) ($data['href'] ?? ''),
             uri: (string) ($data['uri'] ?? ''),
-            type: (string) ($data['type'] ?? 'playlist'),
-            description: self::str($data['description'] ?? null),
-            public: self::bool($data['public'] ?? null),
-            collaborative: self::bool($data['collaborative'] ?? null),
-            snapshotId: self::str($data['snapshot_id'] ?? null),
+            type: (string) ($data['type'] ?? 'user'),
             externalUrls: $externalUrls,
             images: Image::collection($data['images'] ?? []),
-            owner: is_array($rawOwner) ? User::fromArray($rawOwner) : null,
-            tracks: is_array($rawTracks) ? TracksLink::fromArray($rawTracks) : null,
+            followers: is_array($rawFollowers) ? Followers::fromArray($rawFollowers) : null,
         );
     }
 
@@ -64,18 +53,13 @@ final class Playlist extends Resource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
+            'display_name' => $this->displayName,
             'href' => $this->href,
             'uri' => $this->uri,
             'type' => $this->type,
-            'description' => $this->description,
-            'public' => $this->public,
-            'collaborative' => $this->collaborative,
-            'snapshot_id' => $this->snapshotId,
             'external_urls' => $this->externalUrls,
             'images' => $this->images->toArray(),
-            'owner' => $this->owner?->toArray(),
-            'tracks' => $this->tracks?->toArray(),
+            'followers' => $this->followers?->toArray(),
         ];
     }
 }

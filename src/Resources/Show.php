@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace BjTheCod3r\Spotify\Resources;
 
+use Illuminate\Support\Collection;
+
 final class Show extends Resource
 {
     /**
      * @param array<string, string> $externalUrls
-     * @param array<int, Image> $images
-     * @param array<int, string> $languages
-     * @param array<int, string> $availableMarkets
+     * @param Collection<int, Image> $images
+     * @param Collection<int, string> $languages
+     * @param Collection<int, string> $availableMarkets
      */
     public function __construct(
         public readonly string $id,
@@ -26,9 +28,9 @@ final class Show extends Resource
         public readonly ?string $publisher,
         public readonly ?int $totalEpisodes,
         public readonly array $externalUrls,
-        public readonly array $images,
-        public readonly array $languages,
-        public readonly array $availableMarkets,
+        public readonly Collection $images,
+        public readonly Collection $languages,
+        public readonly Collection $availableMarkets,
     ) {
     }
 
@@ -55,14 +57,12 @@ final class Show extends Resource
             totalEpisodes: self::int($data['total_episodes'] ?? null),
             externalUrls: $externalUrls,
             images: Image::collection($data['images'] ?? []),
-            languages: array_values(array_filter(
-                self::arr($data['languages'] ?? []),
-                static fn (mixed $l): bool => is_string($l),
-            )),
-            availableMarkets: array_values(array_filter(
-                self::arr($data['available_markets'] ?? []),
-                static fn (mixed $m): bool => is_string($m),
-            )),
+            languages: collect(self::arr($data['languages'] ?? []))
+                ->filter(static fn (mixed $l): bool => is_string($l))
+                ->values(),
+            availableMarkets: collect(self::arr($data['available_markets'] ?? []))
+                ->filter(static fn (mixed $m): bool => is_string($m))
+                ->values(),
         );
     }
 
@@ -85,9 +85,9 @@ final class Show extends Resource
             'publisher' => $this->publisher,
             'total_episodes' => $this->totalEpisodes,
             'external_urls' => $this->externalUrls,
-            'images' => array_map(static fn (Image $i): array => $i->toArray(), $this->images),
-            'languages' => $this->languages,
-            'available_markets' => $this->availableMarkets,
+            'images' => $this->images->toArray(),
+            'languages' => $this->languages->toArray(),
+            'available_markets' => $this->availableMarkets->toArray(),
         ];
     }
 }
