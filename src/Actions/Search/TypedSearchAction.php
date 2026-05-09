@@ -9,7 +9,7 @@ use BjTheCod3r\Spotify\Enums\SearchType;
 use BjTheCod3r\Spotify\Http\SpotifyClient;
 use BjTheCod3r\Spotify\Resources\Paginated;
 
-abstract class TypedSearchAction extends SearchAction
+abstract class TypedSearchAction extends AbstractSearchAction
 {
     public function __construct(SpotifyClient $client, SpotifyConfig $config)
     {

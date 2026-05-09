@@ -9,7 +9,7 @@ use Illuminate\Http\JsonResponse;
 
 class ApiException extends SpotifyException
 {
-    public static function fromResponse(Response $response): self
+    public static function fromResponse(Response $response): SpotifyException
     {
         $body = (array) $response->json();
         $error = (array) ($body['error'] ?? []);
