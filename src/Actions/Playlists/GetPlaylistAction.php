@@ -66,12 +66,6 @@ class GetPlaylistAction extends BaseAction
         return Playlist::fromArray($payload);
     }
 
-    public function execute(): Playlist
-    {
-        /** @var Playlist */
-        return parent::execute();
-    }
-
     public function get(): Playlist
     {
         return $this->execute();
