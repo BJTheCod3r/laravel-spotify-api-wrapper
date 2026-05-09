@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Use `YYYY-MM-DD` dates for released sections, for example:
+
+```markdown
+## [1.0.0] - 2026-05-09
+```
+
+### Added
+
+### Changed
+
+### Fixed
+
+## [0.1.0] - 2026-05-09
+
 ### Added
 
 - Add GitHub Actions test workflow for PHP 8.2, 8.3, and 8.4, including lowest dependency coverage on PHP 8.2.
