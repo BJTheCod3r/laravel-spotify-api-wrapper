@@ -66,6 +66,21 @@ $tracks->next;      // ?string — URL for the next page
 $tracks->previous;  // ?string
 ```
 
+### Get a playlist
+
+```php
+$playlist = Spotify::playlist('74oVZlOSwpy31tSplEWONa')
+    ->market('GB')
+    ->get();
+
+$playlist->followers->total;
+$playlist->tracks->items[0]->track->name;
+```
+
+Search playlists hydrate as `SimplifiedPlaylist` summaries. Direct playlist lookups hydrate as
+`Playlist` so `followers` and paginated `tracks.items` are only present on the
+endpoint that returns them.
+
 ### Multi-type search
 
 When you want several item types in one request:
@@ -123,7 +138,8 @@ Every search response hydrates into objects under `BjTheCod3r\Spotify\Resources\
 | `Track`        | `name`, `durationMs`, `explicit`, `popularity`, `previewUrl`, `album`, `artists` |
 | `Album`        | `name`, `albumType`, `totalTracks`, `releaseDate` (Carbon), `images`, `artists` |
 | `Artist`       | `name`, `genres`, `popularity`, `images`, `followers` (`Followers` — `href`, `total`) |
-| `Playlist`     | `name`, `description`, `public`, `owner` (`User`), `tracks` (`TracksLink` — `href`, `total`), `images` |
+| `SimplifiedPlaylist` | `name`, `description`, `public`, `owner` (`User`), `tracks` (`TracksLink` — `href`, `total`), `items` (`PlaylistItemsLink`), `images` |
+| `Playlist`     | `name`, `description`, `public`, `followers`, `owner` (`User`), `tracks` (`TracksLink` — `href`, `total`, `items`), `images` |
 | `Show`         | `name`, `description`, `publisher`, `totalEpisodes`, `images`                   |
 | `Episode`      | `name`, `description`, `durationMs`, `releaseDate` (Carbon), `audioPreviewUrl` |
 | `Audiobook`    | `name`, `description`, `authors` (`Author[]`), `narrators` (`Narrator[]`), `publisher`, `totalChapters` |

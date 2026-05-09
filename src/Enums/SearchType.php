@@ -8,9 +8,9 @@ use BjTheCod3r\Spotify\Resources\Album;
 use BjTheCod3r\Spotify\Resources\Artist;
 use BjTheCod3r\Spotify\Resources\Audiobook;
 use BjTheCod3r\Spotify\Resources\Episode;
-use BjTheCod3r\Spotify\Resources\Playlist;
 use BjTheCod3r\Spotify\Resources\Resource;
 use BjTheCod3r\Spotify\Resources\Show;
+use BjTheCod3r\Spotify\Resources\SimplifiedPlaylist;
 use BjTheCod3r\Spotify\Resources\Track;
 
 enum SearchType: string
@@ -52,7 +52,7 @@ enum SearchType: string
             self::Track => Track::fromArray(...),
             self::Album => Album::fromArray(...),
             self::Artist => Artist::fromArray(...),
-            self::Playlist => Playlist::fromArray(...),
+            self::Playlist => SimplifiedPlaylist::fromArray(...),
             self::Show => Show::fromArray(...),
             self::Episode => Episode::fromArray(...),
             self::Audiobook => Audiobook::fromArray(...),

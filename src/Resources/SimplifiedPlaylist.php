@@ -6,7 +6,7 @@ namespace BjTheCod3r\Spotify\Resources;
 
 use Illuminate\Support\Collection;
 
-final class Playlist extends Resource
+final class SimplifiedPlaylist extends Resource
 {
     /**
      * @param array<string, string> $externalUrls
@@ -26,8 +26,8 @@ final class Playlist extends Resource
         public readonly array $externalUrls,
         public readonly Collection $images,
         public readonly ?User $owner,
-        public readonly ?Followers $followers,
         public readonly ?TracksLink $tracks,
+        public readonly ?PlaylistItemsLink $items,
     ) {
     }
 
@@ -40,8 +40,8 @@ final class Playlist extends Resource
         $externalUrls = self::arr($data['external_urls'] ?? []);
 
         $rawOwner = $data['owner'] ?? null;
-        $rawFollowers = $data['followers'] ?? null;
         $rawTracks = $data['tracks'] ?? null;
+        $rawItems = $data['items'] ?? null;
 
         return new self(
             id: (string) ($data['id'] ?? ''),
@@ -57,8 +57,8 @@ final class Playlist extends Resource
             externalUrls: $externalUrls,
             images: Image::collection($data['images'] ?? []),
             owner: is_array($rawOwner) ? User::fromArray($rawOwner) : null,
-            followers: is_array($rawFollowers) ? Followers::fromArray($rawFollowers) : null,
             tracks: is_array($rawTracks) ? TracksLink::fromArray($rawTracks) : null,
+            items: is_array($rawItems) ? PlaylistItemsLink::fromArray($rawItems) : null,
         );
     }
 
@@ -81,8 +81,8 @@ final class Playlist extends Resource
             'external_urls' => $this->externalUrls,
             'images' => $this->images->toArray(),
             'owner' => $this->owner?->toArray(),
-            'followers' => $this->followers?->toArray(),
             'tracks' => $this->tracks?->toArray(),
+            'items' => $this->items?->toArray(),
         ];
     }
 }

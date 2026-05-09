@@ -40,7 +40,8 @@ final class Paginated extends Resource
         return new self(
             href: (string) ($data['href'] ?? ''),
             items: collect($rawItems)
-                ->map(static fn (mixed $item) => $itemFactory(is_array($item) ? $item : []))
+                ->filter(static fn (mixed $item): bool => is_array($item))
+                ->map(static fn (array $item) => $itemFactory($item))
                 ->values(),
             limit: (int) ($data['limit'] ?? 0),
             next: self::str($data['next'] ?? null),
