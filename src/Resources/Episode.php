@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace BjTheCod3r\Spotify\Resources;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 final class Episode extends Resource
 {
     /**
      * @param array<string, string> $externalUrls
-     * @param array<int, Image> $images
-     * @param array<int, string> $languages
+     * @param Collection<int, Image> $images
+     * @param Collection<int, string> $languages
      */
     public function __construct(
         public readonly string $id,
@@ -29,8 +30,8 @@ final class Episode extends Resource
         public readonly ?bool $isExternallyHosted,
         public readonly ?bool $isPlayable,
         public readonly array $externalUrls,
-        public readonly array $images,
-        public readonly array $languages,
+        public readonly Collection $images,
+        public readonly Collection $languages,
     ) {
     }
 
@@ -59,10 +60,9 @@ final class Episode extends Resource
             isPlayable: self::bool($data['is_playable'] ?? null),
             externalUrls: $externalUrls,
             images: Image::collection($data['images'] ?? []),
-            languages: array_values(array_filter(
-                self::arr($data['languages'] ?? []),
-                static fn (mixed $l): bool => is_string($l),
-            )),
+            languages: collect(self::arr($data['languages'] ?? []))
+                ->filter(static fn (mixed $l): bool => is_string($l))
+                ->values(),
         );
     }
 
@@ -87,8 +87,8 @@ final class Episode extends Resource
             'is_externally_hosted' => $this->isExternallyHosted,
             'is_playable' => $this->isPlayable,
             'external_urls' => $this->externalUrls,
-            'images' => array_map(static fn (Image $i): array => $i->toArray(), $this->images),
-            'languages' => $this->languages,
+            'images' => $this->images->toArray(),
+            'languages' => $this->languages->toArray(),
         ];
     }
 }

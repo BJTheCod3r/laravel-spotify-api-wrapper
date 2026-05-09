@@ -1,0 +1,48 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pest:
+    name: PHP ${{ matrix.php }} / ${{ matrix.dependencies }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            dependencies: prefer-lowest
+          - php: '8.2'
+            dependencies: prefer-stable
+          - php: '8.3'
+            dependencies: prefer-stable
+          - php: '8.4'
+            dependencies: prefer-stable
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate Composer files
+        run: composer validate --strict --no-check-lock
+
+      - name: Install dependencies
+        run: composer update --${{ matrix.dependencies }} --prefer-dist --no-interaction --no-progress
+
+      - name: Run tests
+        run: composer test

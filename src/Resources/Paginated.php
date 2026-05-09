@@ -4,22 +4,19 @@ declare(strict_types=1);
 
 namespace BjTheCod3r\Spotify\Resources;
 
+use Illuminate\Support\Collection;
+
 /**
- * Spotify's paging object. Holds the result page plus cursor metadata.
- *
- * `$items` is a typed `array<int, T>` where T is the element resource;
- * the type is enforced via the factory callable passed to `fromArray()`.
- *
  * @template T
  */
 final class Paginated extends Resource
 {
     /**
-     * @param array<int, T> $items
+     * @param Collection<int, T> $items
      */
     public function __construct(
         public readonly string $href,
-        public readonly array $items,
+        public readonly Collection $items,
         public readonly int $limit,
         public readonly ?string $next,
         public readonly int $offset,
@@ -38,15 +35,14 @@ final class Paginated extends Resource
      */
     public static function fromArray(array $data, callable $itemFactory): self
     {
-        /** @var array<int, array<string, mixed>> $rawItems */
         $rawItems = self::arr($data['items'] ?? []);
 
         return new self(
             href: (string) ($data['href'] ?? ''),
-            items: array_values(array_map(
-                static fn (mixed $item) => $itemFactory(is_array($item) ? $item : []),
-                $rawItems,
-            )),
+            items: collect($rawItems)
+                ->filter(static fn (mixed $item): bool => is_array($item))
+                ->map(static fn (array $item) => $itemFactory($item))
+                ->values(),
             limit: (int) ($data['limit'] ?? 0),
             next: self::str($data['next'] ?? null),
             offset: (int) ($data['offset'] ?? 0),
@@ -62,10 +58,7 @@ final class Paginated extends Resource
     {
         return [
             'href' => $this->href,
-            'items' => array_map(
-                static fn (mixed $item): mixed => $item instanceof Resource ? $item->toArray() : $item,
-                $this->items,
-            ),
+            'items' => $this->items->toArray(),
             'limit' => $this->limit,
             'next' => $this->next,
             'offset' => $this->offset,

@@ -66,6 +66,21 @@ $tracks->next;      // ?string — URL for the next page
 $tracks->previous;  // ?string
 ```
 
+### Get a playlist
+
+```php
+$playlist = Spotify::playlist('74oVZlOSwpy31tSplEWONa')
+    ->market('GB')
+    ->get();
+
+$playlist->followers->total;
+$playlist->tracks->items[0]->track->name;
+```
+
+Search playlists hydrate as `SimplifiedPlaylist` summaries. Direct playlist lookups hydrate as
+`Playlist` so `followers` and paginated `tracks.items` are only present on the
+endpoint that returns them.
+
 ### Multi-type search
 
 When you want several item types in one request:
@@ -122,15 +137,28 @@ Every search response hydrates into objects under `BjTheCod3r\Spotify\Resources\
 |----------------|---------------------------------------------------------------------------------|
 | `Track`        | `name`, `durationMs`, `explicit`, `popularity`, `previewUrl`, `album`, `artists` |
 | `Album`        | `name`, `albumType`, `totalTracks`, `releaseDate` (Carbon), `images`, `artists` |
-| `Artist`       | `name`, `genres`, `popularity`, `images`, `followersTotal`                      |
-| `Playlist`     | `name`, `description`, `public`, `ownerDisplayName`, `tracksTotal`, `images`    |
+| `Artist`       | `name`, `genres`, `popularity`, `images`, `followers` (`Followers` — `href`, `total`) |
+| `SimplifiedPlaylist` | `name`, `description`, `public`, `owner` (`User`), `tracks` (`TracksLink` — `href`, `total`), `items` (`PlaylistItemsLink`), `images` |
+| `Playlist`     | `name`, `description`, `public`, `followers`, `owner` (`User`), `tracks` (`TracksLink` — `href`, `total`, `items`), `images` |
 | `Show`         | `name`, `description`, `publisher`, `totalEpisodes`, `images`                   |
 | `Episode`      | `name`, `description`, `durationMs`, `releaseDate` (Carbon), `audioPreviewUrl` |
-| `Audiobook`    | `name`, `description`, `authors`, `narrators`, `publisher`, `totalChapters`     |
+| `Audiobook`    | `name`, `description`, `authors` (`Author[]`), `narrators` (`Narrator[]`), `publisher`, `totalChapters` |
 | `Image`        | `url`, `height`, `width`                                                        |
 | `Paginated<T>` | `items`, `total`, `limit`, `offset`, `next`, `previous`, `href`                 |
 
 Date fields are real `Illuminate\Support\Carbon` instances. Spotify's date precision (`year`, `month`, `day`) is preserved on round-trip via `releaseDatePrecision`.
+
+List fields (`items`, `artists`, `images`, `genres`, `languages`, `authors`, `narrators`, …) are `Illuminate\Support\Collection` instances, so you get the full Laravel Collection API:
+
+```php
+$tracks->items
+    ->filter(fn (Track $t) => $t->popularity > 50)
+    ->sortByDesc('popularity')
+    ->map(fn (Track $t) => $t->name);
+
+$artist->genres->contains('jazz');
+$album->artists->pluck('name');
+```
 
 Resources implement `Arrayable` + `JsonSerializable`, so this works:
 

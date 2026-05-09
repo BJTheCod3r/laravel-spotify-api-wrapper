@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BjTheCod3r\Spotify;
 
+use BjTheCod3r\Spotify\Actions\Playlists\GetPlaylistAction;
 use BjTheCod3r\Spotify\Actions\Search\SearchAction;
 use BjTheCod3r\Spotify\Actions\Search\SearchAlbumsAction;
 use BjTheCod3r\Spotify\Actions\Search\SearchArtistsAction;
@@ -79,5 +80,10 @@ class Spotify
     public function searchAudiobooks(string $query): SearchAudiobooksAction
     {
         return (new SearchAudiobooksAction($this->client, $this->config))->q($query);
+    }
+
+    public function playlist(string $id): GetPlaylistAction
+    {
+        return (new GetPlaylistAction($this->client))->id($id);
     }
 }

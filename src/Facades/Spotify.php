@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BjTheCod3r\Spotify\Facades;
 
+use BjTheCod3r\Spotify\Actions\Playlists\GetPlaylistAction;
 use BjTheCod3r\Spotify\Actions\Search\SearchAction;
 use BjTheCod3r\Spotify\Actions\Search\SearchAlbumsAction;
 use BjTheCod3r\Spotify\Actions\Search\SearchArtistsAction;
@@ -24,6 +25,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static SearchShowsAction    searchShows(string $query)
  * @method static SearchEpisodesAction searchEpisodes(string $query)
  * @method static SearchAudiobooksAction searchAudiobooks(string $query)
+ * @method static GetPlaylistAction    playlist(string $id)
  *
  * @see SpotifyManager
  */

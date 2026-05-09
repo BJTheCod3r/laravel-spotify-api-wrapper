@@ -6,14 +6,11 @@ namespace BjTheCod3r\Spotify\Resources;
 
 use Illuminate\Support\Collection;
 
-final class Audiobook extends Resource
+final class SimplifiedPlaylist extends Resource
 {
     /**
      * @param array<string, string> $externalUrls
      * @param Collection<int, Image> $images
-     * @param Collection<int, Author> $authors
-     * @param Collection<int, Narrator> $narrators
-     * @param Collection<int, string> $languages
      */
     public function __construct(
         public readonly string $id,
@@ -22,16 +19,15 @@ final class Audiobook extends Resource
         public readonly string $uri,
         public readonly string $type,
         public readonly ?string $description,
-        public readonly ?string $htmlDescription,
-        public readonly ?string $edition,
-        public readonly ?bool $explicit,
-        public readonly ?string $publisher,
-        public readonly ?int $totalChapters,
+        public readonly ?bool $public,
+        public readonly ?bool $collaborative,
+        public readonly ?string $primaryColor,
+        public readonly ?string $snapshotId,
         public readonly array $externalUrls,
         public readonly Collection $images,
-        public readonly Collection $authors,
-        public readonly Collection $narrators,
-        public readonly Collection $languages,
+        public readonly ?User $owner,
+        public readonly ?TracksLink $tracks,
+        public readonly ?PlaylistItemsLink $items,
     ) {
     }
 
@@ -43,25 +39,26 @@ final class Audiobook extends Resource
         /** @var array<string, string> $externalUrls */
         $externalUrls = self::arr($data['external_urls'] ?? []);
 
+        $rawOwner = $data['owner'] ?? null;
+        $rawTracks = $data['tracks'] ?? null;
+        $rawItems = $data['items'] ?? null;
+
         return new self(
             id: (string) ($data['id'] ?? ''),
             name: (string) ($data['name'] ?? ''),
             href: (string) ($data['href'] ?? ''),
             uri: (string) ($data['uri'] ?? ''),
-            type: (string) ($data['type'] ?? 'audiobook'),
+            type: (string) ($data['type'] ?? 'playlist'),
             description: self::str($data['description'] ?? null),
-            htmlDescription: self::str($data['html_description'] ?? null),
-            edition: self::str($data['edition'] ?? null),
-            explicit: self::bool($data['explicit'] ?? null),
-            publisher: self::str($data['publisher'] ?? null),
-            totalChapters: self::int($data['total_chapters'] ?? null),
+            public: self::bool($data['public'] ?? null),
+            collaborative: self::bool($data['collaborative'] ?? null),
+            primaryColor: self::str($data['primary_color'] ?? null),
+            snapshotId: self::str($data['snapshot_id'] ?? null),
             externalUrls: $externalUrls,
             images: Image::collection($data['images'] ?? []),
-            authors: Author::collection($data['authors'] ?? []),
-            narrators: Narrator::collection($data['narrators'] ?? []),
-            languages: collect(self::arr($data['languages'] ?? []))
-                ->filter(static fn (mixed $l): bool => is_string($l))
-                ->values(),
+            owner: is_array($rawOwner) ? User::fromArray($rawOwner) : null,
+            tracks: is_array($rawTracks) ? TracksLink::fromArray($rawTracks) : null,
+            items: is_array($rawItems) ? PlaylistItemsLink::fromArray($rawItems) : null,
         );
     }
 
@@ -77,16 +74,15 @@ final class Audiobook extends Resource
             'uri' => $this->uri,
             'type' => $this->type,
             'description' => $this->description,
-            'html_description' => $this->htmlDescription,
-            'edition' => $this->edition,
-            'explicit' => $this->explicit,
-            'publisher' => $this->publisher,
-            'total_chapters' => $this->totalChapters,
+            'public' => $this->public,
+            'collaborative' => $this->collaborative,
+            'primary_color' => $this->primaryColor,
+            'snapshot_id' => $this->snapshotId,
             'external_urls' => $this->externalUrls,
             'images' => $this->images->toArray(),
-            'authors' => $this->authors->toArray(),
-            'narrators' => $this->narrators->toArray(),
-            'languages' => $this->languages->toArray(),
+            'owner' => $this->owner?->toArray(),
+            'tracks' => $this->tracks?->toArray(),
+            'items' => $this->items?->toArray(),
         ];
     }
 }
