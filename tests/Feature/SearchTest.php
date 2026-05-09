@@ -201,7 +201,8 @@ it('appends include_external=audio when requested', function (): void {
 
     Spotify::searchEpisodes('podcast')->includeExternalAudio()->get();
 
-    Http::assertSent(fn ($request): bool => $request['include_external'] === 'audio');
+    Http::assertSent(fn ($request): bool => str_starts_with($request->url(), 'https://api.spotify.com/v1/search')
+        && ($request['include_external'] ?? null) === 'audio');
 });
 
 it('serializes typed resources back to arrays via toArray', function (): void {
@@ -300,5 +301,6 @@ it('accepts string types and coerces them to SearchType enums', function (): voi
 
     Spotify::search('miles', ['track', 'album'])->get();
 
-    Http::assertSent(fn ($request): bool => $request['type'] === 'track,album');
+    Http::assertSent(fn ($request): bool => str_starts_with($request->url(), 'https://api.spotify.com/v1/search')
+        && ($request['type'] ?? null) === 'track,album');
 });
