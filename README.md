@@ -1,3 +1,7 @@
+<p align="center">
+    <img src="art/logo.svg" alt="Laravel Spotify API Wrapper" width="380">
+</p>
+
 # Laravel Spotify API Wrapper
 
 A Laravel wrapper for the [Spotify Web API](https://developer.spotify.com/documentation/web-api). Search across tracks, albums, artists, playlists, shows, episodes, and audiobooks with a fluent facade and fully-typed responses.
