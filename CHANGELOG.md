@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> **Maintenance rule:** the `[Unreleased]` section must be updated whenever
+> changes are pushed. Before every push, read the diff of the current branch
+> against its base (`git diff <base>...HEAD`) and reflect the full set of
+> branch-level changes here — not only the latest commit. If an entry for the
+> same change already exists from an earlier commit on this branch, edit it in
+> place instead of appending a duplicate. The goal is one coherent set of
+> bullets per PR, regardless of how many commits the branch contains.
+
 ## [Unreleased]
 
 Use `YYYY-MM-DD` dates for released sections, for example:
@@ -14,6 +22,8 @@ Use `YYYY-MM-DD` dates for released sections, for example:
 ```
 
 ### Added
+
+- Add `Spotify::album($id)`, `Spotify::artist($id)`, `Spotify::track($id)`, `Spotify::show($id)`, `Spotify::episode($id)`, `Spotify::audiobook($id)`, and `Spotify::user($id)` for retrieving individual resources by ID; market-scoped endpoints expose `->market()`.
 
 ### Changed
 
