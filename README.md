@@ -85,6 +85,22 @@ Search playlists hydrate as `SimplifiedPlaylist` summaries. Direct playlist look
 `Playlist` so `followers` and paginated `tracks.items` are only present on the
 endpoint that returns them.
 
+### Get a single resource by ID
+
+Direct lookups exist for every searchable resource, plus user profiles. They all
+return a fully-typed resource (the same classes the search endpoints hydrate),
+and accept `->market()` where Spotify supports it.
+
+```php
+$album     = Spotify::album('4aawyAB9vmqN3uQ7FjRGTy')->market('US')->get();
+$artist    = Spotify::artist('0TnOYISbd1XYRBk9myaseg')->get();
+$track     = Spotify::track('11dFghVXANMlKmJXsNCbNl')->market('US')->get();
+$show      = Spotify::show('38bS44xjbVVZ3No3ByF1dJ')->market('US')->get();
+$episode   = Spotify::episode('512ojhOuo1ktJprKbVcKyQ')->market('US')->get();
+$audiobook = Spotify::audiobook('7iHfbu1YPACw6oZPAFJtqe')->market('US')->get();
+$user      = Spotify::user('smedjan')->get();
+```
+
 ### Multi-type search
 
 When you want several item types in one request:

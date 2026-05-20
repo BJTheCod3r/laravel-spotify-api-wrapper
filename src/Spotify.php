@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace BjTheCod3r\Spotify;
 
+use BjTheCod3r\Spotify\Actions\Albums\GetAlbumAction;
+use BjTheCod3r\Spotify\Actions\Artists\GetArtistAction;
+use BjTheCod3r\Spotify\Actions\Audiobooks\GetAudiobookAction;
+use BjTheCod3r\Spotify\Actions\Episodes\GetEpisodeAction;
 use BjTheCod3r\Spotify\Actions\Playlists\GetPlaylistAction;
 use BjTheCod3r\Spotify\Actions\Search\SearchAction;
 use BjTheCod3r\Spotify\Actions\Search\SearchAlbumsAction;
@@ -13,6 +17,9 @@ use BjTheCod3r\Spotify\Actions\Search\SearchEpisodesAction;
 use BjTheCod3r\Spotify\Actions\Search\SearchPlaylistsAction;
 use BjTheCod3r\Spotify\Actions\Search\SearchShowsAction;
 use BjTheCod3r\Spotify\Actions\Search\SearchTracksAction;
+use BjTheCod3r\Spotify\Actions\Shows\GetShowAction;
+use BjTheCod3r\Spotify\Actions\Tracks\GetTrackAction;
+use BjTheCod3r\Spotify\Actions\Users\GetUserAction;
 use BjTheCod3r\Spotify\Config\SpotifyConfig;
 use BjTheCod3r\Spotify\Enums\SearchType;
 use BjTheCod3r\Spotify\Http\SpotifyClient;
@@ -85,5 +92,40 @@ class Spotify
     public function playlist(string $id): GetPlaylistAction
     {
         return (new GetPlaylistAction($this->client))->id($id);
+    }
+
+    public function album(string $id): GetAlbumAction
+    {
+        return (new GetAlbumAction($this->client))->id($id);
+    }
+
+    public function artist(string $id): GetArtistAction
+    {
+        return (new GetArtistAction($this->client))->id($id);
+    }
+
+    public function track(string $id): GetTrackAction
+    {
+        return (new GetTrackAction($this->client))->id($id);
+    }
+
+    public function show(string $id): GetShowAction
+    {
+        return (new GetShowAction($this->client))->id($id);
+    }
+
+    public function episode(string $id): GetEpisodeAction
+    {
+        return (new GetEpisodeAction($this->client))->id($id);
+    }
+
+    public function audiobook(string $id): GetAudiobookAction
+    {
+        return (new GetAudiobookAction($this->client))->id($id);
+    }
+
+    public function user(string $id): GetUserAction
+    {
+        return (new GetUserAction($this->client))->id($id);
     }
 }
