@@ -23,11 +23,15 @@ Use `YYYY-MM-DD` dates for released sections, for example:
 
 ### Added
 
-- Add `Spotify::album($id)`, `Spotify::artist($id)`, `Spotify::track($id)`, `Spotify::show($id)`, `Spotify::episode($id)`, `Spotify::audiobook($id)`, and `Spotify::user($id)` for retrieving individual resources by ID; market-scoped endpoints expose `->market()`.
-
 ### Changed
 
 ### Fixed
+
+## [0.2.0] - 2026-05-20
+
+### Added
+
+- Add `Spotify::album($id)`, `Spotify::artist($id)`, `Spotify::track($id)`, `Spotify::show($id)`, `Spotify::episode($id)`, `Spotify::audiobook($id)`, and `Spotify::user($id)` for retrieving individual resources by ID; market-scoped endpoints expose `->market()`.
 
 ## [0.1.0] - 2026-05-09
 
