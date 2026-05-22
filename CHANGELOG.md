@@ -23,7 +23,17 @@ Use `YYYY-MM-DD` dates for released sections, for example:
 
 ### Added
 
+- Add user OAuth via Authorization Code + PKCE: `Spotify::redirect()`, `Spotify::handleCallback()`, `Spotify::disconnect()`, opt-in package routes (`spotify.connect`, `spotify.callback`, `spotify.disconnect`), and a publishable `spotify_user_tokens` migration with access/refresh tokens encrypted at rest.
+- Add `Spotify::me()` and `Spotify::asUser($id)` for user-context calls, plus the `Me\Get*Action` family: `GetCurrentUserProfileAction`, `GetMyPlaylistsAction`, `GetMySavedTracksAction`, `GetMySavedAlbumsAction`, `GetMySavedShowsAction`, `GetMySavedEpisodesAction`, `GetMySavedAudiobooksAction`, `GetMyTopTracksAction`, `GetMyTopArtistsAction`, `GetMyRecentlyPlayedAction`, `GetFollowedArtistsAction`.
+- Add `UserTokenRepository` contract with a default Eloquent implementation (`EloquentUserTokenRepository` over the `SpotifyUserToken` model). Swap via `oauth.token_repository`.
+- Add `UserTokenProvider` that transparently refreshes access tokens, serialises concurrent refreshes per-user via `Cache::lock`, recovers from a `401` by force-refreshing and retrying once, and deletes the row + fires `SpotifyDisconnected` on `invalid_grant`.
+- Add events `SpotifyConnected`, `SpotifyTokenRefreshed`, `SpotifyDisconnected`, `SpotifyConnectFailed` so apps can react to lifecycle changes.
+- Add `oauth` configuration block (redirect URI, default scopes, guard, routes, session key, after-connect/disconnect redirects, refresh lock, custom token repository).
+
 ### Changed
+
+- `SpotifyConfig` now exposes an `oauth: OAuthConfig` sub-DTO derived from `config/spotify.php`.
+- README adds a "User authentication" section covering setup, the connect flow, reading user data, refresh semantics, events, and custom token storage. The roadmap is updated to reflect what shipped.
 
 ### Fixed
 

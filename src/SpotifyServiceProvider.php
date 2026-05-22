@@ -5,10 +5,17 @@ declare(strict_types=1);
 namespace BjTheCod3r\Spotify;
 
 use BjTheCod3r\Spotify\Auth\ClientCredentialsTokenProvider;
+use BjTheCod3r\Spotify\Auth\EloquentUserTokenRepository;
+use BjTheCod3r\Spotify\Auth\OAuthManager;
 use BjTheCod3r\Spotify\Config\SpotifyConfig;
 use BjTheCod3r\Spotify\Contracts\TokenProvider;
+use BjTheCod3r\Spotify\Contracts\UserTokenRepository;
 use BjTheCod3r\Spotify\Http\SpotifyClient;
+use Illuminate\Contracts\Auth\Factory as AuthFactory;
+use Illuminate\Contracts\Cache\Factory as CacheFactory;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class SpotifyServiceProvider extends ServiceProvider
@@ -31,6 +38,25 @@ class SpotifyServiceProvider extends ServiceProvider
             return new ClientCredentialsTokenProvider($config, $cache);
         });
 
+        $this->app->singleton(UserTokenRepository::class, function ($app): UserTokenRepository {
+            $config = $app->make(SpotifyConfig::class);
+            $class = $config->oauth->tokenRepository;
+
+            if ($class !== null && $class !== '') {
+                return $app->make($class);
+            }
+
+            return $app->make(EloquentUserTokenRepository::class);
+        });
+
+        $this->app->singleton(OAuthManager::class, fn ($app): OAuthManager => new OAuthManager(
+            config: $app->make(SpotifyConfig::class),
+            repository: $app->make(UserTokenRepository::class),
+            auth: $app->make(AuthFactory::class),
+            cache: $app->make(CacheFactory::class),
+            events: $app->make(Dispatcher::class),
+        ));
+
         $this->app->singleton(SpotifyClient::class, fn ($app): SpotifyClient => new SpotifyClient(
             tokenProvider: $app->make(TokenProvider::class),
             config: $app->make(SpotifyConfig::class),
@@ -39,6 +65,7 @@ class SpotifyServiceProvider extends ServiceProvider
         $this->app->singleton(Spotify::class, fn ($app): Spotify => new Spotify(
             client: $app->make(SpotifyClient::class),
             config: $app->make(SpotifyConfig::class),
+            oauth: $app->make(OAuthManager::class),
         ));
         $this->app->alias(Spotify::class, 'spotify');
     }
@@ -49,6 +76,18 @@ class SpotifyServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../config/spotify.php' => $this->app->configPath('spotify.php'),
             ], 'spotify-config');
+
+            $this->publishesMigrations([
+                __DIR__.'/../database/migrations' => $this->app->databasePath('migrations'),
+            ], 'spotify-migrations');
+        }
+
+        $config = $this->app->make(SpotifyConfig::class);
+
+        if ($config->oauth->routesEnabled) {
+            Route::middleware($config->oauth->routesMiddleware)
+                ->prefix($config->oauth->routesPrefix)
+                ->group(__DIR__.'/../routes/spotify.php');
         }
     }
 }

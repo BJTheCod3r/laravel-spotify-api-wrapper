@@ -79,4 +79,66 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | User OAuth (Authorization Code + PKCE)
+    |--------------------------------------------------------------------------
+    |
+    | Lets your users connect their personal Spotify account so the package
+    | can act on their behalf — read saved tracks/playlists, top items,
+    | listening history, etc. PKCE is the only flow supported.
+    |
+    | After publishing the migration (`php artisan vendor:publish
+    | --tag=spotify-migrations`), authorized users hit the `connect` route to
+    | start the OAuth dance. Tokens are stored encrypted-at-rest in the
+    | `spotify_user_tokens` table and refreshed automatically.
+    |
+    */
+
+    'oauth' => [
+        'redirect_uri' => env('SPOTIFY_REDIRECT_URI'),
+
+        // Scopes requested by default. Pass extras to Spotify::redirect()
+        // to add per-call scopes; the union is requested.
+        'default_scopes' => [
+            'user-read-private',
+            'user-read-email',
+            'playlist-read-private',
+            'playlist-read-collaborative',
+            'user-library-read',
+            'user-top-read',
+            'user-read-recently-played',
+            'user-follow-read',
+        ],
+
+        // Auth guard used to resolve the current user. `null` = default guard.
+        'guard' => env('SPOTIFY_OAUTH_GUARD'),
+
+        'routes' => [
+            'enabled' => env('SPOTIFY_OAUTH_ROUTES_ENABLED', true),
+            'prefix' => env('SPOTIFY_OAUTH_ROUTES_PREFIX', 'spotify'),
+            'middleware' => ['web', 'auth'],
+        ],
+
+        // Session key used to stash PKCE verifier + state between the
+        // redirect and callback.
+        'session_key' => 'spotify.oauth',
+
+        // Redirect targets after the callback completes.
+        'after_connect' => env('SPOTIFY_OAUTH_AFTER_CONNECT', '/'),
+        'after_disconnect' => env('SPOTIFY_OAUTH_AFTER_DISCONNECT', '/'),
+
+        // Token refresh is serialised per-user to avoid two workers
+        // simultaneously spending the same refresh token.
+        'refresh_lock' => [
+            'enabled' => true,
+            'ttl' => 10,
+            'wait' => 5,
+        ],
+
+        // FQCN of a UserTokenRepository implementation. `null` uses the
+        // bundled Eloquent-backed default.
+        'token_repository' => null,
+    ],
+
 ];

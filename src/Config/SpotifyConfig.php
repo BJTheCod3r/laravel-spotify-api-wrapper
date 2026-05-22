@@ -20,6 +20,7 @@ final class SpotifyConfig
         public readonly int $httpTimeout,
         public readonly int $httpRetryTimes,
         public readonly int $httpRetrySleep,
+        public readonly OAuthConfig $oauth,
     ) {
     }
 
@@ -33,6 +34,7 @@ final class SpotifyConfig
         $cache = isset($config['cache']) && is_array($config['cache']) ? $config['cache'] : [];
         $http = isset($config['http']) && is_array($config['http']) ? $config['http'] : [];
         $retry = isset($http['retry']) && is_array($http['retry']) ? $http['retry'] : [];
+        $oauth = isset($config['oauth']) && is_array($config['oauth']) ? $config['oauth'] : [];
 
         return new self(
             clientId: isset($config['client_id']) ? trim((string) $config['client_id']) : '',
@@ -48,7 +50,13 @@ final class SpotifyConfig
             httpTimeout: (int) ($http['timeout'] ?? 10),
             httpRetryTimes: (int) ($retry['times'] ?? 1),
             httpRetrySleep: (int) ($retry['sleep'] ?? 200),
+            oauth: OAuthConfig::fromArray($oauth),
         );
+    }
+
+    public function authorizeUrl(): string
+    {
+        return $this->accountsUrl.'/authorize';
     }
 
     public function tokenUrl(): string
