@@ -20,9 +20,13 @@ use BjTheCod3r\Spotify\Actions\Search\SearchTracksAction;
 use BjTheCod3r\Spotify\Actions\Shows\GetShowAction;
 use BjTheCod3r\Spotify\Actions\Tracks\GetTrackAction;
 use BjTheCod3r\Spotify\Actions\Users\GetUserAction;
+use BjTheCod3r\Spotify\Auth\OAuthManager;
+use BjTheCod3r\Spotify\Auth\UserTokenSet;
 use BjTheCod3r\Spotify\Config\SpotifyConfig;
 use BjTheCod3r\Spotify\Enums\SearchType;
 use BjTheCod3r\Spotify\Http\SpotifyClient;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 /**
  * Entry point for the package. Returns fluent Action instances which the
@@ -35,10 +39,71 @@ use BjTheCod3r\Spotify\Http\SpotifyClient;
  */
 class Spotify
 {
+    protected int|string|null $boundUserId = null;
+
     public function __construct(
         protected SpotifyClient $client,
         protected SpotifyConfig $config,
+        protected OAuthManager $oauth,
     ) {
+    }
+
+    /**
+     * Return a Spotify manager scoped to the given local user id. The
+     * returned instance is independent of the container-bound default
+     * (client-credentials) instance — safe to use from concurrent workers.
+     */
+    public function asUser(int|string $userId): self
+    {
+        $clone = new self(
+            client: $this->oauth->clientFor($userId),
+            config: $this->config,
+            oauth: $this->oauth,
+        );
+        $clone->boundUserId = $userId;
+
+        return $clone;
+    }
+
+    /**
+     * Entry point for `/me/*` endpoints. Uses the user this instance is
+     * already bound to (via asUser); otherwise resolves the current user
+     * via the configured auth guard.
+     */
+    public function me(): MeBuilder
+    {
+        if ($this->boundUserId !== null) {
+            return new MeBuilder($this->client);
+        }
+
+        return new MeBuilder($this->oauth->clientFor($this->oauth->currentUserId()));
+    }
+
+    /**
+     * Build a redirect to Spotify's consent screen, persisting PKCE state
+     * in the request's session.
+     *
+     * @param list<string>|null $scopes Extra scopes to request. Null → defaults.
+     * @param bool              $replaceScopes Replace defaults rather than merge.
+     */
+    public function redirect(Request $request, ?array $scopes = null, bool $replaceScopes = false): RedirectResponse
+    {
+        return $this->oauth->redirect($request->session(), $scopes, $replaceScopes);
+    }
+
+    public function handleCallback(Request $request): UserTokenSet
+    {
+        return $this->oauth->handleCallback($request);
+    }
+
+    public function disconnect(int|string|null $userId = null): void
+    {
+        $this->oauth->disconnect($userId);
+    }
+
+    public function oauth(): OAuthManager
+    {
+        return $this->oauth;
     }
 
     /**

@@ -15,6 +15,62 @@ class AuthenticationException extends SpotifyException
         );
     }
 
+    public static function missingRedirectUri(): self
+    {
+        return new self(
+            'Spotify OAuth redirect URI is not configured. Set SPOTIFY_REDIRECT_URI in your environment or update config/spotify.php.',
+        );
+    }
+
+    public static function noAuthenticatedUser(): self
+    {
+        return new self(
+            'No authenticated user. Resolve one via the configured guard or call Spotify::asUser($id) explicitly.',
+        );
+    }
+
+    public static function notConnected(string|int $userId): self
+    {
+        return new self(
+            "User [{$userId}] has not connected a Spotify account.",
+        );
+    }
+
+    public static function stateMismatch(): self
+    {
+        return new self('Spotify OAuth state mismatch. The callback request did not match the originating session.');
+    }
+
+    public static function userDenied(?string $reason = null): self
+    {
+        $suffix = $reason !== null && $reason !== '' ? " ({$reason})" : '';
+
+        return new self('User denied the Spotify authorization request'.$suffix.'.');
+    }
+
+    public static function authorizeError(string $error): self
+    {
+        return new self("Spotify authorization failed: {$error}.");
+    }
+
+    public static function invalidGrant(): self
+    {
+        return new self(
+            'Spotify rejected the refresh token (invalid_grant). The user must reconnect their account.',
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    public static function malformedTokenResponse(array $payload): self
+    {
+        return new self(
+            'Spotify returned a 200 response without a usable access/refresh token pair.',
+            context: $payload,
+        );
+    }
+
     public static function connectionFailed(Throwable $previous): self
     {
         return new self(

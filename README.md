@@ -217,7 +217,130 @@ try {
 
 The package uses Spotify's **Client Credentials** grant — no user login required, suitable for any endpoint that doesn't need user context (Search, Browse, Albums, Artists, Tracks). Tokens are cached using Laravel's cache for the duration Spotify reports in `expires_in`, minus a small safety buffer, so you only hit the auth endpoint when a token actually needs refreshing.
 
-User-context flows (Authorization Code / PKCE) for Playlists, Player, and User endpoints will arrive in a later release.
+## User authentication
+
+For endpoints that act on a listener's account — their playlists, library, top items, listening history — connect their Spotify account via the **Authorization Code + PKCE** flow.
+
+> **About playback.** The Spotify Web API does not return playable audio URLs even for authenticated users. Full playback is gated to Spotify's Web Playback SDK (browser, Premium) and the mobile SDKs. The user-auth surface here is for *reading* user data and (in a future release) *controlling* an active device, not for direct streaming.
+
+### Setup
+
+Publish the migration that stores per-user tokens, then run it:
+
+```bash
+php artisan vendor:publish --tag=spotify-migrations
+php artisan migrate
+```
+
+Tokens are encrypted at rest using Laravel's app key.
+
+Set the OAuth redirect URI on your `.env` (and register the same value on the Spotify dashboard for your app):
+
+```dotenv
+SPOTIFY_REDIRECT_URI=https://your-app.test/spotify/callback
+```
+
+The package registers three opt-in routes under the `spotify` prefix (configurable):
+
+| Method | URI                  | Name                  |
+|--------|----------------------|-----------------------|
+| GET    | `/spotify/connect`   | `spotify.connect`     |
+| GET    | `/spotify/callback`  | `spotify.callback`    |
+| POST   | `/spotify/disconnect`| `spotify.disconnect`  |
+
+Set `spotify.oauth.routes.enabled` to `false` (or env `SPOTIFY_OAUTH_ROUTES_ENABLED=false`) to disable them and wire your own controllers using the `Spotify::redirect()` / `Spotify::handleCallback()` helpers.
+
+### Connecting a user
+
+Have the authenticated user hit the `connect` route — by default it requires the `web` + `auth` middleware:
+
+```blade
+<a href="{{ route('spotify.connect') }}">Connect Spotify</a>
+```
+
+Pass extra scopes via `?scopes=playlist-modify-public,user-modify-playback-state` to merge with the configured defaults.
+
+After consent, Spotify redirects to `/spotify/callback`. The controller exchanges the code, captures the listener's Spotify user id, persists encrypted tokens, dispatches `SpotifyConnected`, and redirects to `oauth.after_connect`.
+
+If anything fails (state mismatch, user denied consent on Spotify, exchange error, …), the callback still redirects to `oauth.after_connect` but flashes a `spotify.oauth.error` payload onto the session so the destination can render error UX:
+
+```blade
+@if ($error = session('spotify.oauth.error'))
+    <div class="alert">
+        Spotify connect failed: {{ $error['reason'] }}
+        @if ($error['description']) ({{ $error['description'] }}) @endif
+    </div>
+@endif
+```
+
+The `reason` is one of `state_mismatch`, `user_denied`, `authorize_error`, or `exchange_failed`; `description` carries the underlying Spotify error code or exception message.
+
+### Reading user data
+
+```php
+use BjTheCod3r\Spotify\Facades\Spotify;
+
+// Implicit: resolves the current user via the configured guard.
+$profile      = Spotify::me()->profile()->get();
+$playlists    = Spotify::me()->playlists()->limit(50)->get();
+$savedTracks  = Spotify::me()->savedTracks()->market('US')->limit(50)->get();
+$savedAlbums  = Spotify::me()->savedAlbums()->get();
+$topTracks    = Spotify::me()->topTracks()->timeRange('short_term')->get();
+$topArtists   = Spotify::me()->topArtists()->get();
+$recent       = Spotify::me()->recentlyPlayed()->limit(50)->get();
+$following    = Spotify::me()->followedArtists()->limit(50)->get();
+
+// Explicit: act as a specific user id (queue workers, jobs).
+Spotify::asUser($userId)->me()->playlists()->get();
+```
+
+All `me()` endpoints that return collections come back as the same `Paginated` resource the rest of the package uses. The `me/tracks`, `me/albums`, `me/shows`, `me/episodes`, and `me/player/recently-played` envelopes are unwrapped — the items collection contains the inner `Track` / `Album` / etc. directly. The `added_at` / `played_at` timestamps from those envelopes are not exposed in v0.3.
+
+### Token refresh & 401 handling
+
+Access tokens are refreshed transparently when stale. A `401` from any API call forces an out-of-band refresh and retries the original request once, so a token revoked between issuance and use is recovered automatically.
+
+If Spotify rejects the refresh token (`invalid_grant`) — typically because the user revoked access from their Spotify settings — the stored row is deleted and `SpotifyDisconnected` is fired with `reason = invalid_grant`, so your app can prompt the user to reconnect.
+
+Concurrent refreshes are serialised per-user via `Cache::lock`, so a fan-out of queue workers doesn't double-spend a rotating refresh token.
+
+### Events
+
+Listen for any of these to integrate with your app:
+
+| Event                        | When                                                            |
+|------------------------------|-----------------------------------------------------------------|
+| `SpotifyConnected`           | After a successful callback exchange.                           |
+| `SpotifyTokenRefreshed`      | After any successful refresh-token grant.                       |
+| `SpotifyDisconnected`        | On explicit `disconnect()` or `invalid_grant` from refresh.     |
+| `SpotifyConnectFailed`       | State mismatch, user denied consent, authorize error, exchange failure. |
+
+### Disconnecting
+
+```php
+Spotify::disconnect();              // current user via guard
+Spotify::disconnect($userId);       // explicit
+```
+
+Or POST to `route('spotify.disconnect')` from a form. The default route stack includes `web` middleware, so the form must carry a CSRF token:
+
+```blade
+<form method="POST" action="{{ route('spotify.disconnect') }}">
+    @csrf
+    <button type="submit">Disconnect Spotify</button>
+</form>
+```
+
+### Custom token storage
+
+The default Eloquent-backed repository covers most apps. To swap implementations (Redis, encrypted file, another DB connection), implement `BjTheCod3r\Spotify\Contracts\UserTokenRepository` and point at it:
+
+```php
+// config/spotify.php
+'oauth' => [
+    'token_repository' => App\Spotify\RedisUserTokenRepository::class,
+],
+```
 
 ## Testing
 
@@ -240,16 +363,15 @@ Http::fake([
 ## Roadmap
 
 - [x] Search
-- [ ] Albums
-- [ ] Artists
-- [ ] Tracks (incl. audio features / analysis)
-- [ ] Episodes & Shows
-- [ ] Audiobooks & Chapters
+- [x] Albums, Artists, Tracks (Get-by-ID)
+- [x] Episodes, Shows, Audiobooks (Get-by-ID)
+- [x] Playlists (Get-by-ID, read-only)
+- [x] Users — Authorization Code + PKCE, `me/*` reads
+- [ ] Tracks (audio features / analysis)
 - [ ] Browse (categories, new releases, featured playlists)
-- [ ] Playlists (read-only first)
 - [ ] Markets, Genres
-- [ ] Users — requires Authorization Code / PKCE
-- [ ] Player — requires user-context auth
+- [ ] Player — playback control on the user's active device
+- [ ] Playlist mutations (create / reorder / add-remove items)
 
 ## License
 
