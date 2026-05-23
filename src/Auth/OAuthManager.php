@@ -74,45 +74,59 @@ class OAuthManager
             $error = (string) $request->query('error', '');
 
             if ($error !== '') {
-                $session->consume();
-                $this->events->dispatch(new SpotifyConnectFailed(
-                    userId: $userId,
-                    reason: SpotifyConnectFailed::REASON_USER_DENIED,
-                    description: $error,
-                ));
+                $reason = $error === 'access_denied'
+                    ? SpotifyConnectFailed::REASON_USER_DENIED
+                    : SpotifyConnectFailed::REASON_AUTHORIZE_ERROR;
 
-                throw AuthenticationException::userDenied($error);
+                throw $this->fail(
+                    $session,
+                    $userId,
+                    $reason,
+                    $error,
+                    $reason === SpotifyConnectFailed::REASON_USER_DENIED
+                        ? AuthenticationException::userDenied($error)
+                        : AuthenticationException::authorizeError($error),
+                );
             }
 
             $expected = $session->state();
             $received = (string) $request->query('state', '');
 
             if ($expected === null || $received === '' || ! hash_equals($expected, $received)) {
-                $session->consume();
-                $this->events->dispatch(new SpotifyConnectFailed(
-                    userId: $userId,
-                    reason: SpotifyConnectFailed::REASON_STATE_MISMATCH,
-                ));
-
-                throw AuthenticationException::stateMismatch();
+                throw $this->fail(
+                    $session,
+                    $userId,
+                    SpotifyConnectFailed::REASON_STATE_MISMATCH,
+                    null,
+                    AuthenticationException::stateMismatch(),
+                );
             }
 
             $verifier = $session->verifier();
             $code = (string) $request->query('code', '');
 
             if ($verifier === null || $code === '') {
-                $session->consume();
-                $this->events->dispatch(new SpotifyConnectFailed(
-                    userId: $userId,
-                    reason: SpotifyConnectFailed::REASON_EXCHANGE_FAILED,
-                    description: 'Missing code or PKCE verifier.',
-                ));
-
-                throw AuthenticationException::stateMismatch();
+                throw $this->fail(
+                    $session,
+                    $userId,
+                    SpotifyConnectFailed::REASON_EXCHANGE_FAILED,
+                    'Missing code or PKCE verifier.',
+                    AuthenticationException::stateMismatch(),
+                );
             }
 
-            $tokens = (new AuthorizationCodeExchanger($this->config))
-                ->exchange($code, $verifier);
+            try {
+                $tokens = (new AuthorizationCodeExchanger($this->config))
+                    ->exchange($code, $verifier);
+            } catch (AuthenticationException $e) {
+                throw $this->fail(
+                    $session,
+                    $userId,
+                    SpotifyConnectFailed::REASON_EXCHANGE_FAILED,
+                    $e->getMessage(),
+                    $e,
+                );
+            }
 
             $tokens = $this->captureSpotifyUserId($tokens);
             $this->repository->store($userId, $tokens);
@@ -127,6 +141,31 @@ class OAuthManager
         } finally {
             $session->consume();
         }
+    }
+
+    /**
+     * Consume the PKCE session, flash the failure for the after-connect
+     * destination, dispatch SpotifyConnectFailed, and return the exception
+     * to throw. Returning rather than throwing keeps the call-site explicit
+     * about control flow.
+     */
+    private function fail(
+        AuthorizationSession $session,
+        int|string|null $userId,
+        string $reason,
+        ?string $description,
+        AuthenticationException $exception,
+    ): AuthenticationException {
+        $session->flashError($reason, $description);
+        $session->consume();
+
+        $this->events->dispatch(new SpotifyConnectFailed(
+            userId: $userId,
+            reason: $reason,
+            description: $description,
+        ));
+
+        return $exception;
     }
 
     public function disconnect(int|string|null $userId = null): void

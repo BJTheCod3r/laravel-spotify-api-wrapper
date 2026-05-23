@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BjTheCod3r\Spotify\Auth;
 
+use BjTheCod3r\Spotify\Exceptions\AuthenticationException;
 use Illuminate\Support\Carbon;
 
 final readonly class UserTokenSet
@@ -73,12 +74,21 @@ final readonly class UserTokenSet
      */
     public static function fromTokenResponse(array $payload): self
     {
+        $accessToken = isset($payload['access_token']) ? (string) $payload['access_token'] : '';
+        $refreshToken = isset($payload['refresh_token']) ? (string) $payload['refresh_token'] : '';
+
+        // The PKCE code exchange must yield both tokens; a 200 with either
+        // missing is a malformed response we shouldn't quietly persist.
+        if ($accessToken === '' || $refreshToken === '') {
+            throw AuthenticationException::malformedTokenResponse($payload);
+        }
+
         $expiresIn = (int) ($payload['expires_in'] ?? 3600);
         $scope = isset($payload['scope']) ? (string) $payload['scope'] : '';
 
         return new self(
-            accessToken: (string) ($payload['access_token'] ?? ''),
-            refreshToken: (string) ($payload['refresh_token'] ?? ''),
+            accessToken: $accessToken,
+            refreshToken: $refreshToken,
             expiresAt: Carbon::now()->addSeconds($expiresIn),
             scopes: self::splitScopes($scope),
             tokenType: (string) ($payload['token_type'] ?? 'Bearer'),

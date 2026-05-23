@@ -43,26 +43,25 @@ final class AuthorizationSession
         return is_string($value) && $value !== '' ? $value : null;
     }
 
-    /**
-     * @return list<string>
-     */
-    public function requestedScopes(): array
-    {
-        $value = $this->session->get($this->key('scopes'));
-
-        if (! is_array($value)) {
-            return [];
-        }
-
-        return array_values(array_map('strval', $value));
-    }
-
     public function consume(): void
     {
         $this->session->forget([
             $this->key('state'),
             $this->key('verifier'),
             $this->key('scopes'),
+        ]);
+    }
+
+    /**
+     * Flash callback failure info so the after-connect destination can
+     * render error UX without needing a separate event subscriber. Read via
+     * `session('spotify.oauth.error')` (with the configured session_key).
+     */
+    public function flashError(string $reason, ?string $description = null): void
+    {
+        $this->session->flash($this->key('error'), [
+            'reason' => $reason,
+            'description' => $description,
         ]);
     }
 

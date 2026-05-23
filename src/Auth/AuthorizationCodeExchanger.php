@@ -30,6 +30,7 @@ final class AuthorizationCodeExchanger
 
         try {
             $response = Http::asForm()
+                ->acceptJson()
                 ->timeout($this->config->httpTimeout)
                 ->post($this->config->tokenUrl(), [
                     'grant_type' => 'authorization_code',

@@ -82,6 +82,10 @@ class SpotifyServiceProvider extends ServiceProvider
             ], 'spotify-migrations');
         }
 
+        if ($this->app->routesAreCached()) {
+            return;
+        }
+
         $config = $this->app->make(SpotifyConfig::class);
 
         if ($config->oauth->routesEnabled) {

@@ -48,10 +48,26 @@ class AuthenticationException extends SpotifyException
         return new self('User denied the Spotify authorization request'.$suffix.'.');
     }
 
+    public static function authorizeError(string $error): self
+    {
+        return new self("Spotify authorization failed: {$error}.");
+    }
+
     public static function invalidGrant(): self
     {
         return new self(
             'Spotify rejected the refresh token (invalid_grant). The user must reconnect their account.',
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    public static function malformedTokenResponse(array $payload): self
+    {
+        return new self(
+            'Spotify returned a 200 response without a usable access/refresh token pair.',
+            context: $payload,
         );
     }
 

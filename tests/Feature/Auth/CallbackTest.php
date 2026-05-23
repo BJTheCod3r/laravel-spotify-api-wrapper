@@ -124,3 +124,70 @@ it('fires SpotifyConnectFailed when the user denies consent', function (): void 
             && $event->description === 'access_denied';
     });
 });
+
+it('distinguishes non-denial authorize errors from user-denied', function (): void {
+    Event::fake([SpotifyConnected::class, SpotifyConnectFailed::class]);
+
+    $this->actingAs(new TestUser(id: 1));
+
+    $response = $this->withSession([
+        'spotify.oauth.state' => 'expected',
+        'spotify.oauth.verifier' => 'verifier',
+        'spotify.oauth.scopes' => [],
+    ])->get('/spotify/callback?error=invalid_scope&state=expected');
+
+    $response->assertRedirect('/');
+
+    Event::assertDispatched(SpotifyConnectFailed::class, function (SpotifyConnectFailed $event): bool {
+        return $event->reason === SpotifyConnectFailed::REASON_AUTHORIZE_ERROR
+            && $event->description === 'invalid_scope';
+    });
+});
+
+it('flashes the failure onto the session so after_connect can render error UX', function (): void {
+    $this->actingAs(new TestUser(id: 1));
+
+    $response = $this->withSession([
+        'spotify.oauth.state' => 'expected',
+        'spotify.oauth.verifier' => 'verifier',
+        'spotify.oauth.scopes' => [],
+    ])->get('/spotify/callback?code=anything&state=tampered');
+
+    $response->assertRedirect('/');
+    $response->assertSessionHas('spotify.oauth.error', [
+        'reason' => SpotifyConnectFailed::REASON_STATE_MISMATCH,
+        'description' => null,
+    ]);
+});
+
+it('treats a 200 response missing access_token as a failed exchange', function (): void {
+    Event::fake([SpotifyConnected::class, SpotifyConnectFailed::class]);
+
+    Http::fake([
+        'accounts.spotify.com/api/token' => Http::response([
+            // No access_token / refresh_token — should not be persisted.
+            'token_type' => 'Bearer',
+            'expires_in' => 3600,
+        ]),
+    ]);
+
+    $this->actingAs(new TestUser(id: 7));
+
+    $response = $this->withSession([
+        'spotify.oauth.state' => 'expected',
+        'spotify.oauth.verifier' => 'verifier',
+        'spotify.oauth.scopes' => [],
+    ])->get('/spotify/callback?code=anything&state=expected');
+
+    $response->assertRedirect('/');
+    $response->assertSessionHas('spotify.oauth.error', function (array $error): bool {
+        return $error['reason'] === SpotifyConnectFailed::REASON_EXCHANGE_FAILED;
+    });
+
+    Event::assertDispatched(SpotifyConnectFailed::class, function (SpotifyConnectFailed $event): bool {
+        return $event->reason === SpotifyConnectFailed::REASON_EXCHANGE_FAILED;
+    });
+
+    Event::assertNotDispatched(SpotifyConnected::class);
+    expect(DB::table('spotify_user_tokens')->count())->toBe(0);
+});

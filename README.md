@@ -262,6 +262,19 @@ Pass extra scopes via `?scopes=playlist-modify-public,user-modify-playback-state
 
 After consent, Spotify redirects to `/spotify/callback`. The controller exchanges the code, captures the listener's Spotify user id, persists encrypted tokens, dispatches `SpotifyConnected`, and redirects to `oauth.after_connect`.
 
+If anything fails (state mismatch, user denied consent on Spotify, exchange error, …), the callback still redirects to `oauth.after_connect` but flashes a `spotify.oauth.error` payload onto the session so the destination can render error UX:
+
+```blade
+@if ($error = session('spotify.oauth.error'))
+    <div class="alert">
+        Spotify connect failed: {{ $error['reason'] }}
+        @if ($error['description']) ({{ $error['description'] }}) @endif
+    </div>
+@endif
+```
+
+The `reason` is one of `state_mismatch`, `user_denied`, `authorize_error`, or `exchange_failed`; `description` carries the underlying Spotify error code or exception message.
+
 ### Reading user data
 
 ```php
@@ -300,7 +313,7 @@ Listen for any of these to integrate with your app:
 | `SpotifyConnected`           | After a successful callback exchange.                           |
 | `SpotifyTokenRefreshed`      | After any successful refresh-token grant.                       |
 | `SpotifyDisconnected`        | On explicit `disconnect()` or `invalid_grant` from refresh.     |
-| `SpotifyConnectFailed`       | State mismatch, user denied consent, exchange failure.          |
+| `SpotifyConnectFailed`       | State mismatch, user denied consent, authorize error, exchange failure. |
 
 ### Disconnecting
 
@@ -309,7 +322,14 @@ Spotify::disconnect();              // current user via guard
 Spotify::disconnect($userId);       // explicit
 ```
 
-Or POST to `route('spotify.disconnect')`.
+Or POST to `route('spotify.disconnect')` from a form. The default route stack includes `web` middleware, so the form must carry a CSRF token:
+
+```blade
+<form method="POST" action="{{ route('spotify.disconnect') }}">
+    @csrf
+    <button type="submit">Disconnect Spotify</button>
+</form>
+```
 
 ### Custom token storage
 

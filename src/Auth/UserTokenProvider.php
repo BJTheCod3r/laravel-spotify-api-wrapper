@@ -116,6 +116,7 @@ class UserTokenProvider implements TokenProvider
     {
         try {
             $response = Http::asForm()
+                ->acceptJson()
                 ->timeout($this->config->httpTimeout)
                 ->post($this->config->tokenUrl(), [
                     'grant_type' => 'refresh_token',
