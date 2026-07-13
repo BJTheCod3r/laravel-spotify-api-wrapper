@@ -21,6 +21,12 @@ Use `YYYY-MM-DD` dates for released sections, for example:
 ## [1.0.0] - 2026-05-09
 ```
 
+## [0.4.0] - 2026-07-13
+
+### Added
+
+- Add `Spotify::albumTracks($id)` (`GetAlbumTracksAction`) for paging through an album's tracks. Returns a `Paginated<Track>` and accepts `->market()`, `->limit()`, and `->offset()`. Items are Spotify's simplified tracks, so `album`, `popularity`, and `externalIds` are null — use `Spotify::track($id)` for the full object.
+
 ## [0.3.0] - 2026-05-23
 
 ### Added
