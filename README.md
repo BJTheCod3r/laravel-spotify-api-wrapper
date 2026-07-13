@@ -101,6 +101,28 @@ $audiobook = Spotify::audiobook('7iHfbu1YPACw6oZPAFJtqe')->market('US')->get();
 $user      = Spotify::user('smedjan')->get();
 ```
 
+### An album's tracks
+
+`Spotify::albumTracks($id)` pages through an album's track list. It returns the
+same `Paginated` resource as search, with each item hydrated as a `Track`.
+Accepts `->market()`, `->limit()`, and `->offset()`.
+
+```php
+$page = Spotify::albumTracks('4aawyAB9vmqN3uQ7FjRGTy')
+    ->market('US')
+    ->limit(20)
+    ->offset(0)
+    ->get();
+
+$page->items;                 // Collection<Track>
+$page->total;                 // 18
+$page->items->first()->name;  // 'Global Warming'
+$page->next;                  // next-page URL, or null on the last page
+```
+
+These are Spotify's *simplified* tracks, so `album`, `popularity`, and
+`externalIds` come back null — fetch `Spotify::track($id)` for the full object.
+
 ### Multi-type search
 
 When you want several item types in one request:
@@ -364,6 +386,7 @@ Http::fake([
 
 - [x] Search
 - [x] Albums, Artists, Tracks (Get-by-ID)
+- [x] Album tracks (paginated)
 - [x] Episodes, Shows, Audiobooks (Get-by-ID)
 - [x] Playlists (Get-by-ID, read-only)
 - [x] Users — Authorization Code + PKCE, `me/*` reads

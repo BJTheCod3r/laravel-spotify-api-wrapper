@@ -8,6 +8,7 @@ use BjTheCod3r\Spotify\Resources\Artist;
 use BjTheCod3r\Spotify\Resources\Audiobook;
 use BjTheCod3r\Spotify\Resources\Episode;
 use BjTheCod3r\Spotify\Resources\Followers;
+use BjTheCod3r\Spotify\Resources\Paginated;
 use BjTheCod3r\Spotify\Resources\Show;
 use BjTheCod3r\Spotify\Resources\Track;
 use BjTheCod3r\Spotify\Resources\User;
@@ -47,6 +48,58 @@ it('gets an album with market query', function (): void {
 
     Http::assertSent(fn ($request): bool => str_starts_with($request->url(), 'https://api.spotify.com/v1/albums/4aawyAB9vmqN3uQ7FjRGTy')
         && ($request['market'] ?? null) === 'US');
+});
+
+it('gets an album\'s tracks paginated with market and paging queries', function (): void {
+    Http::fake([
+        'api.spotify.com/v1/albums/4aawyAB9vmqN3uQ7FjRGTy/tracks*' => Http::response([
+            'href' => 'https://api.spotify.com/v1/albums/4aawyAB9vmqN3uQ7FjRGTy/tracks?offset=0&limit=2',
+            'limit' => 2,
+            'offset' => 0,
+            'total' => 18,
+            'next' => 'https://api.spotify.com/v1/albums/4aawyAB9vmqN3uQ7FjRGTy/tracks?offset=2&limit=2',
+            'previous' => null,
+            'items' => [
+                [
+                    'id' => 'tr1',
+                    'name' => 'Global Warming',
+                    'type' => 'track',
+                    'track_number' => 1,
+                    'disc_number' => 1,
+                    'duration_ms' => 89_000,
+                    'artists' => [['id' => 'ar1', 'name' => 'Pitbull', 'type' => 'artist']],
+                ],
+                [
+                    'id' => 'tr2',
+                    'name' => 'Feel This Moment',
+                    'type' => 'track',
+                    'track_number' => 2,
+                    'disc_number' => 1,
+                    'duration_ms' => 229_000,
+                    'artists' => [['id' => 'ar1', 'name' => 'Pitbull', 'type' => 'artist']],
+                ],
+            ],
+        ]),
+    ]);
+
+    $tracks = Spotify::albumTracks('4aawyAB9vmqN3uQ7FjRGTy')
+        ->market('US')
+        ->limit(2)
+        ->offset(0)
+        ->get();
+
+    expect($tracks)->toBeInstanceOf(Paginated::class)
+        ->and($tracks->total)->toBe(18)
+        ->and($tracks->items)->toHaveCount(2)
+        ->and($tracks->items->first())->toBeInstanceOf(Track::class)
+        ->and($tracks->items->first()->name)->toBe('Global Warming')
+        ->and($tracks->items->first()->trackNumber)->toBe(1)
+        ->and($tracks->items->first()->album)->toBeNull();
+
+    Http::assertSent(fn ($request): bool => str_starts_with($request->url(), 'https://api.spotify.com/v1/albums/4aawyAB9vmqN3uQ7FjRGTy/tracks')
+        && ($request['market'] ?? null) === 'US'
+        && (string) $request['limit'] === '2'
+        && (string) $request['offset'] === '0');
 });
 
 it('gets an artist with followers', function (): void {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BjTheCod3r\Spotify\Facades;
 
 use BjTheCod3r\Spotify\Actions\Albums\GetAlbumAction;
+use BjTheCod3r\Spotify\Actions\Albums\GetAlbumTracksAction;
 use BjTheCod3r\Spotify\Actions\Artists\GetArtistAction;
 use BjTheCod3r\Spotify\Actions\Audiobooks\GetAudiobookAction;
 use BjTheCod3r\Spotify\Actions\Episodes\GetEpisodeAction;
@@ -34,6 +35,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static SearchAudiobooksAction searchAudiobooks(string $query)
  * @method static GetPlaylistAction    playlist(string $id)
  * @method static GetAlbumAction       album(string $id)
+ * @method static GetAlbumTracksAction albumTracks(string $id)
  * @method static GetArtistAction      artist(string $id)
  * @method static GetTrackAction       track(string $id)
  * @method static GetShowAction        show(string $id)
