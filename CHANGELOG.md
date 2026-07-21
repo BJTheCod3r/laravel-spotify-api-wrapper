@@ -11,15 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > branch-level changes here — not only the latest commit. If an entry for the
 > same change already exists from an earlier commit on this branch, edit it in
 > place instead of appending a duplicate. The goal is one coherent set of
-> bullets per PR, regardless of how many commits the branch contains.
+> bullets per PR, regardless of how many commits the branch contains. Released
+> sections are dated `YYYY-MM-DD`, e.g. `## [1.0.0] - 2026-05-09`.
 
 ## [Unreleased]
 
-Use `YYYY-MM-DD` dates for released sections, for example:
+## [0.5.0] - 2026-07-21
 
-```markdown
-## [1.0.0] - 2026-05-09
-```
+### Added
+
+- Add `Spotify::artistTopTracks($id)` (`GetArtistTopTracksAction`) for an artist's most popular tracks. Accepts `->market()` and returns a `Collection<Track>` — the endpoint sends a bare list rather than a paging object. Unlike the other Get-by-ID actions it seeds `spotify.defaults.market`, because Spotify returns nothing at all when it has neither a market nor a user token to infer one from.
+- Add `Track::collection()`, mirroring the other resources' list hydrators.
 
 ## [0.4.0] - 2026-07-13
 

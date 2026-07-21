@@ -67,6 +67,20 @@ final class Track extends Resource
     }
 
     /**
+     * @return Collection<int, self>
+     */
+    public static function collection(mixed $data): Collection
+    {
+        if (! is_array($data)) {
+            return collect();
+        }
+
+        return collect($data)
+            ->map(static fn (mixed $item): self => self::fromArray(is_array($item) ? $item : []))
+            ->values();
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(): array

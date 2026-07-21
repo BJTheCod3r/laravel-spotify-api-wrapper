@@ -7,6 +7,7 @@ namespace BjTheCod3r\Spotify;
 use BjTheCod3r\Spotify\Actions\Albums\GetAlbumAction;
 use BjTheCod3r\Spotify\Actions\Albums\GetAlbumTracksAction;
 use BjTheCod3r\Spotify\Actions\Artists\GetArtistAction;
+use BjTheCod3r\Spotify\Actions\Artists\GetArtistTopTracksAction;
 use BjTheCod3r\Spotify\Actions\Audiobooks\GetAudiobookAction;
 use BjTheCod3r\Spotify\Actions\Episodes\GetEpisodeAction;
 use BjTheCod3r\Spotify\Actions\Playlists\GetPlaylistAction;
@@ -173,6 +174,11 @@ class Spotify
     public function artist(string $id): GetArtistAction
     {
         return (new GetArtistAction($this->client))->id($id);
+    }
+
+    public function artistTopTracks(string $id): GetArtistTopTracksAction
+    {
+        return (new GetArtistTopTracksAction($this->client, $this->config))->id($id);
     }
 
     public function track(string $id): GetTrackAction
