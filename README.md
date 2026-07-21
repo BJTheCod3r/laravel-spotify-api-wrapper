@@ -123,6 +123,34 @@ $page->next;                  // next-page URL, or null on the last page
 These are Spotify's *simplified* tracks, so `album`, `popularity`, and
 `externalIds` come back null — fetch `Spotify::track($id)` for the full object.
 
+### An artist's top tracks
+
+`Spotify::artistTopTracks($id)` returns the artist's most popular tracks (up to
+10) for a market. Spotify sends a bare list here rather than a paging object, so
+you get a `Collection<Track>` back — only `->market()` applies.
+
+```php
+$tracks = Spotify::artistTopTracks('0TnOYISbd1XYRBk9myaseg')
+    ->market('US')
+    ->get();
+
+$tracks->count();                // 10
+$tracks->first()->name;          // 'Give Me Everything'
+$tracks->first()->album->name;   // 'Planet Pit'
+```
+
+`market` is optional to the API, but Spotify only infers one from a *user* token
+(`Spotify::asUser($id)->artistTopTracks(...)`, where the account's country wins
+over anything you pass). On the default client-credentials token there is no
+country to fall back on, and Spotify then treats the catalogue as unavailable
+and returns an empty list.
+
+Because of that, this is the one Get-by-ID action that seeds
+`spotify.defaults.market` (`SPOTIFY_MARKET`) — set it once and top-track calls
+work without an explicit market. `->market()` still overrides it per call. The
+other Get-by-ID endpoints deliberately leave `market` unset, since there a
+market *narrows* the response rather than enabling it.
+
 ### Multi-type search
 
 When you want several item types in one request:
@@ -387,6 +415,7 @@ Http::fake([
 - [x] Search
 - [x] Albums, Artists, Tracks (Get-by-ID)
 - [x] Album tracks (paginated)
+- [x] Artist top tracks
 - [x] Episodes, Shows, Audiobooks (Get-by-ID)
 - [x] Playlists (Get-by-ID, read-only)
 - [x] Users — Authorization Code + PKCE, `me/*` reads

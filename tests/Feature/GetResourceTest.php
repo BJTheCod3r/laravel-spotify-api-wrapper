@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use BjTheCod3r\Spotify\Config\SpotifyConfig;
 use BjTheCod3r\Spotify\Facades\Spotify;
 use BjTheCod3r\Spotify\Resources\Album;
 use BjTheCod3r\Spotify\Resources\Artist;
@@ -12,6 +13,7 @@ use BjTheCod3r\Spotify\Resources\Paginated;
 use BjTheCod3r\Spotify\Resources\Show;
 use BjTheCod3r\Spotify\Resources\Track;
 use BjTheCod3r\Spotify\Resources\User;
+use BjTheCod3r\Spotify\Spotify as SpotifyManager;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function (): void {
@@ -120,6 +122,79 @@ it('gets an artist with followers', function (): void {
         ->and($artist->name)->toBe('Pitbull')
         ->and($artist->followers)->toBeInstanceOf(Followers::class)
         ->and($artist->followers->total)->toBe(25_000_000);
+});
+
+it('gets an artist\'s top tracks with market query', function (): void {
+    Http::fake([
+        'api.spotify.com/v1/artists/0TnOYISbd1XYRBk9myaseg/top-tracks*' => Http::response([
+            'tracks' => [
+                [
+                    'id' => 'tr1',
+                    'name' => 'Give Me Everything',
+                    'type' => 'track',
+                    'duration_ms' => 252_000,
+                    'popularity' => 82,
+                    'album' => ['id' => 'al1', 'name' => 'Planet Pit', 'type' => 'album'],
+                    'artists' => [['id' => 'ar1', 'name' => 'Pitbull', 'type' => 'artist']],
+                ],
+                [
+                    'id' => 'tr2',
+                    'name' => 'Timber',
+                    'type' => 'track',
+                    'duration_ms' => 204_000,
+                    'popularity' => 79,
+                    'album' => ['id' => 'al2', 'name' => 'Global Warming: Meltdown', 'type' => 'album'],
+                    'artists' => [['id' => 'ar1', 'name' => 'Pitbull', 'type' => 'artist']],
+                ],
+            ],
+        ]),
+    ]);
+
+    $tracks = Spotify::artistTopTracks('0TnOYISbd1XYRBk9myaseg')->market('US')->get();
+
+    expect($tracks)->toHaveCount(2)
+        ->and($tracks->first())->toBeInstanceOf(Track::class)
+        ->and($tracks->first()->name)->toBe('Give Me Everything')
+        ->and($tracks->first()->album->name)->toBe('Planet Pit');
+
+    Http::assertSent(fn ($request): bool => str_starts_with($request->url(), 'https://api.spotify.com/v1/artists/0TnOYISbd1XYRBk9myaseg/top-tracks')
+        && ($request['market'] ?? null) === 'US');
+});
+
+it('falls back to the configured default market for top tracks', function (): void {
+    config()->set('spotify.defaults.market', 'GB');
+    app()->forgetInstance(SpotifyConfig::class);
+    app()->forgetInstance(SpotifyManager::class);
+
+    Http::fake([
+        'api.spotify.com/v1/artists/0TnOYISbd1XYRBk9myaseg/top-tracks*' => Http::response(['tracks' => []]),
+    ]);
+
+    Spotify::artistTopTracks('0TnOYISbd1XYRBk9myaseg')->get();
+
+    Http::assertSent(fn ($request): bool => ($request['market'] ?? null) === 'GB');
+});
+
+it('lets an explicit market override the configured default', function (): void {
+    config()->set('spotify.defaults.market', 'GB');
+    app()->forgetInstance(SpotifyConfig::class);
+    app()->forgetInstance(SpotifyManager::class);
+
+    Http::fake([
+        'api.spotify.com/v1/artists/0TnOYISbd1XYRBk9myaseg/top-tracks*' => Http::response(['tracks' => []]),
+    ]);
+
+    Spotify::artistTopTracks('0TnOYISbd1XYRBk9myaseg')->market('NG')->get();
+
+    Http::assertSent(fn ($request): bool => ($request['market'] ?? null) === 'NG');
+});
+
+it('returns an empty collection when an artist has no top tracks', function (): void {
+    Http::fake([
+        'api.spotify.com/v1/artists/0TnOYISbd1XYRBk9myaseg/top-tracks*' => Http::response(['tracks' => []]),
+    ]);
+
+    expect(Spotify::artistTopTracks('0TnOYISbd1XYRBk9myaseg')->get())->toBeEmpty();
 });
 
 it('gets a track with market query', function (): void {
