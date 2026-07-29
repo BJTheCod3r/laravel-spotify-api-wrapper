@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Hydrate `available_markets` into `Album::$availableMarkets`, `Track::$availableMarkets`, and `Audiobook::$availableMarkets` (`Collection<string>`), and include it in each `toArray()`. Spotify sends the field on these objects but it was being discarded; `Show` already had it. `Episode` is deliberately excluded — Spotify only returns `available_markets` on the episode's nested show, not on the episode itself.
+
+### Changed
+
+- **Breaking:** `Album`, `Track`, and `Audiobook` constructors take a new trailing `Collection $availableMarkets` argument. Callers hydrating these resources via `new` rather than `fromArray()` must pass it.
+
 ## [0.5.0] - 2026-07-21
 
 ### Added

@@ -101,6 +101,15 @@ $audiobook = Spotify::audiobook('7iHfbu1YPACw6oZPAFJtqe')->market('US')->get();
 $user      = Spotify::user('smedjan')->get();
 ```
 
+`Album`, `Track`, `Show`, and `Audiobook` expose the catalogue's country list as
+`availableMarkets` (`Collection<string>` of ISO 3166-1 alpha-2 codes), empty when
+Spotify omits it — as it does on `Episode`, where the field only exists on the
+nested show.
+
+```php
+$album->availableMarkets->contains('NG');  // true
+```
+
 ### An album's tracks
 
 `Spotify::albumTracks($id)` pages through an album's track list. It returns the
