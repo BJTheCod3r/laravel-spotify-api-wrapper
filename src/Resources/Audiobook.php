@@ -14,6 +14,7 @@ final class Audiobook extends Resource
      * @param Collection<int, Author> $authors
      * @param Collection<int, Narrator> $narrators
      * @param Collection<int, string> $languages
+     * @param Collection<int, string> $availableMarkets
      */
     public function __construct(
         public readonly string $id,
@@ -32,6 +33,7 @@ final class Audiobook extends Resource
         public readonly Collection $authors,
         public readonly Collection $narrators,
         public readonly Collection $languages,
+        public readonly Collection $availableMarkets,
     ) {
     }
 
@@ -62,6 +64,9 @@ final class Audiobook extends Resource
             languages: collect(self::arr($data['languages'] ?? []))
                 ->filter(static fn (mixed $l): bool => is_string($l))
                 ->values(),
+            availableMarkets: collect(self::arr($data['available_markets'] ?? []))
+                ->filter(static fn (mixed $m): bool => is_string($m))
+                ->values(),
         );
     }
 
@@ -87,6 +92,7 @@ final class Audiobook extends Resource
             'authors' => $this->authors->toArray(),
             'narrators' => $this->narrators->toArray(),
             'languages' => $this->languages->toArray(),
+            'available_markets' => $this->availableMarkets->toArray(),
         ];
     }
 }

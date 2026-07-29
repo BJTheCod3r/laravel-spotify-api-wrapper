@@ -13,6 +13,7 @@ final class Album extends Resource
      * @param array<string, string> $externalUrls
      * @param Collection<int, Image> $images
      * @param Collection<int, Artist> $artists
+     * @param Collection<int, string> $availableMarkets
      */
     public function __construct(
         public readonly string $id,
@@ -27,6 +28,7 @@ final class Album extends Resource
         public readonly array $externalUrls,
         public readonly Collection $images,
         public readonly Collection $artists,
+        public readonly Collection $availableMarkets,
     ) {
     }
 
@@ -51,6 +53,9 @@ final class Album extends Resource
             externalUrls: $externalUrls,
             images: Image::collection($data['images'] ?? []),
             artists: Artist::collection($data['artists'] ?? []),
+            availableMarkets: collect(self::arr($data['available_markets'] ?? []))
+                ->filter(static fn (mixed $m): bool => is_string($m))
+                ->values(),
         );
     }
 
@@ -86,6 +91,7 @@ final class Album extends Resource
             'external_urls' => $this->externalUrls,
             'images' => $this->images->toArray(),
             'artists' => $this->artists->toArray(),
+            'available_markets' => $this->availableMarkets->toArray(),
         ];
     }
 }

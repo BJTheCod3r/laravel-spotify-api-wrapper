@@ -39,6 +39,7 @@ it('gets an album with market query', function (): void {
             'release_date' => '2012-11-19',
             'release_date_precision' => 'day',
             'artists' => [['id' => 'ar1', 'name' => 'Pitbull', 'type' => 'artist']],
+            'available_markets' => ['US', 'GB', 'NG'],
         ]),
     ]);
 
@@ -46,7 +47,8 @@ it('gets an album with market query', function (): void {
 
     expect($album)->toBeInstanceOf(Album::class)
         ->and($album->name)->toBe('Global Warming')
-        ->and($album->totalTracks)->toBe(18);
+        ->and($album->totalTracks)->toBe(18)
+        ->and($album->availableMarkets->all())->toBe(['US', 'GB', 'NG']);
 
     Http::assertSent(fn ($request): bool => str_starts_with($request->url(), 'https://api.spotify.com/v1/albums/4aawyAB9vmqN3uQ7FjRGTy')
         && ($request['market'] ?? null) === 'US');
@@ -206,6 +208,7 @@ it('gets a track with market query', function (): void {
             'duration_ms' => 207959,
             'explicit' => false,
             'popularity' => 65,
+            'available_markets' => ['US', 'GB'],
         ]),
     ]);
 
@@ -213,7 +216,8 @@ it('gets a track with market query', function (): void {
 
     expect($track)->toBeInstanceOf(Track::class)
         ->and($track->name)->toBe('Cut to the Feeling')
-        ->and($track->durationMs)->toBe(207959);
+        ->and($track->durationMs)->toBe(207959)
+        ->and($track->availableMarkets->all())->toBe(['US', 'GB']);
 
     Http::assertSent(fn ($request): bool => ($request['market'] ?? null) === 'US');
 });
@@ -265,6 +269,7 @@ it('gets an audiobook with market query', function (): void {
             'authors' => [['name' => 'James Clear']],
             'narrators' => [['name' => 'James Clear']],
             'languages' => ['en'],
+            'available_markets' => ['US', 'CA'],
         ]),
     ]);
 
@@ -272,7 +277,8 @@ it('gets an audiobook with market query', function (): void {
 
     expect($book)->toBeInstanceOf(Audiobook::class)
         ->and($book->name)->toBe('Atomic Habits')
-        ->and($book->authors[0]->name)->toBe('James Clear');
+        ->and($book->authors[0]->name)->toBe('James Clear')
+        ->and($book->availableMarkets->all())->toBe(['US', 'CA']);
 });
 
 it('gets a user profile', function (): void {
