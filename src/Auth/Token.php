@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace BjTheCod3r\Spotify\Auth;
 
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 
 final readonly class Token
 {
+    /**
+     * `expiresAt` is a CarbonInterface rather than a concrete Carbon so an
+     * application on `Date::use(CarbonImmutable::class)` can hand its own
+     * instances straight in.
+     */
     public function __construct(
         public string $accessToken,
         public string $tokenType,
-        public Carbon $expiresAt,
+        public CarbonInterface $expiresAt,
     ) {
     }
 

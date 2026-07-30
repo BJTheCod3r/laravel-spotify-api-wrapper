@@ -5,17 +5,23 @@ declare(strict_types=1);
 namespace BjTheCod3r\Spotify\Auth;
 
 use BjTheCod3r\Spotify\Exceptions\AuthenticationException;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 
 final readonly class UserTokenSet
 {
     /**
+     * `expiresAt` is a CarbonInterface rather than a concrete Carbon so a
+     * repository backed by Eloquent can pass the model's cast value through
+     * unchanged, including on applications running
+     * `Date::use(CarbonImmutable::class)`.
+     *
      * @param list<string> $scopes
      */
     public function __construct(
         public string $accessToken,
         public string $refreshToken,
-        public Carbon $expiresAt,
+        public CarbonInterface $expiresAt,
         public array $scopes,
         public ?string $spotifyUserId = null,
         public string $tokenType = 'Bearer',
