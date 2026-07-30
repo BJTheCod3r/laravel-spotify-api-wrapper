@@ -6,16 +6,11 @@ namespace BjTheCod3r\Spotify\Auth;
 
 use BjTheCod3r\Spotify\Exceptions\AuthenticationException;
 use Carbon\CarbonInterface;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 
 final readonly class UserTokenSet
 {
     /**
-     * `expiresAt` is a CarbonInterface rather than a concrete Carbon so a
-     * repository backed by Eloquent can pass the model's cast value through
-     * unchanged, including on applications running
-     * `Date::use(CarbonImmutable::class)`.
-     *
      * @param list<string> $scopes
      */
     public function __construct(
@@ -54,7 +49,7 @@ final readonly class UserTokenSet
             refreshToken: isset($payload['refresh_token']) && $payload['refresh_token'] !== ''
                 ? (string) $payload['refresh_token']
                 : $this->refreshToken,
-            expiresAt: Carbon::now()->addSeconds($expiresIn),
+            expiresAt: Date::now()->addSeconds($expiresIn),
             scopes: $scope !== null && $scope !== ''
                 ? self::splitScopes($scope)
                 : $this->scopes,
@@ -95,7 +90,7 @@ final readonly class UserTokenSet
         return new self(
             accessToken: $accessToken,
             refreshToken: $refreshToken,
-            expiresAt: Carbon::now()->addSeconds($expiresIn),
+            expiresAt: Date::now()->addSeconds($expiresIn),
             scopes: self::splitScopes($scope),
             tokenType: (string) ($payload['token_type'] ?? 'Bearer'),
         );
@@ -127,7 +122,7 @@ final readonly class UserTokenSet
         return new self(
             accessToken: (string) ($data['access_token'] ?? ''),
             refreshToken: (string) ($data['refresh_token'] ?? ''),
-            expiresAt: Carbon::createFromTimestamp((int) ($data['expires_at'] ?? 0)),
+            expiresAt: Date::createFromTimestamp((int) ($data['expires_at'] ?? 0)),
             scopes: $scopes,
             spotifyUserId: isset($data['spotify_user_id']) && $data['spotify_user_id'] !== ''
                 ? (string) $data['spotify_user_id']

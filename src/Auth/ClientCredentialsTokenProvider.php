@@ -8,8 +8,8 @@ use BjTheCod3r\Spotify\Config\SpotifyConfig;
 use BjTheCod3r\Spotify\Contracts\TokenProvider;
 use BjTheCod3r\Spotify\Exceptions\AuthenticationException;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
-use Illuminate\Support\Carbon;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
@@ -77,7 +77,7 @@ class ClientCredentialsTokenProvider implements TokenProvider
         $token = new Token(
             accessToken: (string) ($payload['access_token'] ?? ''),
             tokenType: (string) ($payload['token_type'] ?? 'Bearer'),
-            expiresAt: Carbon::now()->addSeconds($expiresIn),
+            expiresAt: Date::now()->addSeconds($expiresIn),
         );
 
         $ttl = max(1, $expiresIn - $this->config->cacheTtlBuffer);

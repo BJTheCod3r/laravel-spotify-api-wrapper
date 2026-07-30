@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use BjTheCod3r\Spotify\Auth\UserTokenSet;
 use BjTheCod3r\Spotify\Contracts\UserTokenRepository;
+use BjTheCod3r\Spotify\Events\SpotifyTokenRefreshed;
 use BjTheCod3r\Spotify\Facades\Spotify;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 
 /*
@@ -61,6 +63,8 @@ it('calls the API as a user whose stored token is immutable', function (): void 
 });
 
 it('refreshes an expired immutable token', function (): void {
+    Event::fake([SpotifyTokenRefreshed::class]);
+
     Http::fake([
         'accounts.spotify.com/api/token' => Http::response([
             'access_token' => 'rotated-access',
@@ -81,6 +85,13 @@ it('refreshes an expired immutable token', function (): void {
     Spotify::asUser(1)->me()->profile()->get();
 
     expect(app(UserTokenRepository::class)->find(1)->accessToken)->toBe('rotated-access');
+
+    // The expiry the package mints itself must follow the application's date
+    // class too, or a listener gets a mutable instance it didn't ask for.
+    Event::assertDispatched(
+        SpotifyTokenRefreshed::class,
+        fn (SpotifyTokenRefreshed $event): bool => $event->expiresAt instanceof CarbonImmutable,
+    );
 
     Http::assertSent(fn ($request): bool => $request->url() === 'https://api.spotify.com/v1/me'
         && $request->header('Authorization')[0] === 'Bearer rotated-access');
