@@ -36,6 +36,13 @@ class AuthenticationException extends SpotifyException
         );
     }
 
+    public static function unknownSpotifyUser(string|int $userId): self
+    {
+        return new self(
+            "Could not resolve the Spotify account id for user [{$userId}]. Have them reconnect their Spotify account.",
+        );
+    }
+
     public static function stateMismatch(): self
     {
         return new self('Spotify OAuth state mismatch. The callback request did not match the originating session.');

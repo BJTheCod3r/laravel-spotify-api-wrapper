@@ -10,7 +10,14 @@ use BjTheCod3r\Spotify\Actions\Artists\GetArtistAction;
 use BjTheCod3r\Spotify\Actions\Artists\GetArtistTopTracksAction;
 use BjTheCod3r\Spotify\Actions\Audiobooks\GetAudiobookAction;
 use BjTheCod3r\Spotify\Actions\Episodes\GetEpisodeAction;
+use BjTheCod3r\Spotify\Actions\Playlists\AddPlaylistItemsAction;
+use BjTheCod3r\Spotify\Actions\Playlists\ChangePlaylistDetailsAction;
+use BjTheCod3r\Spotify\Actions\Playlists\CreatePlaylistAction;
 use BjTheCod3r\Spotify\Actions\Playlists\GetPlaylistAction;
+use BjTheCod3r\Spotify\Actions\Playlists\GetPlaylistItemsAction;
+use BjTheCod3r\Spotify\Actions\Playlists\RemovePlaylistItemsAction;
+use BjTheCod3r\Spotify\Actions\Playlists\ReorderPlaylistItemsAction;
+use BjTheCod3r\Spotify\Actions\Playlists\ReplacePlaylistItemsAction;
 use BjTheCod3r\Spotify\Actions\Search\SearchAction;
 use BjTheCod3r\Spotify\Actions\Search\SearchAlbumsAction;
 use BjTheCod3r\Spotify\Actions\Search\SearchArtistsAction;
@@ -35,6 +42,13 @@ use Illuminate\Support\Facades\Facade;
  * @method static SearchEpisodesAction searchEpisodes(string $query)
  * @method static SearchAudiobooksAction searchAudiobooks(string $query)
  * @method static GetPlaylistAction    playlist(string $id)
+ * @method static GetPlaylistItemsAction playlistItems(string $id)
+ * @method static CreatePlaylistAction createPlaylist(string $name)
+ * @method static ChangePlaylistDetailsAction updatePlaylist(string $id)
+ * @method static AddPlaylistItemsAction addPlaylistItems(string $id, array|string $uris = [])
+ * @method static ReplacePlaylistItemsAction replacePlaylistItems(string $id, array|string $uris = [])
+ * @method static ReorderPlaylistItemsAction reorderPlaylistItems(string $id)
+ * @method static RemovePlaylistItemsAction removePlaylistItems(string $id, array|string $uris = [])
  * @method static GetAlbumAction       album(string $id)
  * @method static GetAlbumTracksAction albumTracks(string $id)
  * @method static GetArtistAction      artist(string $id)

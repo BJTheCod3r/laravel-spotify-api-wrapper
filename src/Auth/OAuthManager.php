@@ -198,6 +198,40 @@ class OAuthManager
         );
     }
 
+    /**
+     * The Spotify account id linked to a local user, needed by endpoints
+     * that address the account by id rather than through `/me`, such as
+     * playlist creation.
+     *
+     * Normally captured at connect time; rows that predate it (the capture
+     * is best-effort) are backfilled here on first use.
+     */
+    public function spotifyUserId(int|string|null $userId = null): string
+    {
+        $resolved = $userId ?? $this->currentUserId();
+        $tokens = $this->repository->find($resolved);
+
+        if ($tokens === null) {
+            throw AuthenticationException::notConnected($resolved);
+        }
+
+        if ($tokens->spotifyUserId !== null) {
+            return $tokens->spotifyUserId;
+        }
+
+        $profile = $this->clientFor($resolved)->get('/me');
+        $id = isset($profile['id']) && $profile['id'] !== '' ? (string) $profile['id'] : null;
+
+        if ($id === null) {
+            throw AuthenticationException::unknownSpotifyUser($resolved);
+        }
+
+        $current = $this->repository->find($resolved) ?? $tokens;
+        $this->repository->store($resolved, $current->withSpotifyUserId($id));
+
+        return $id;
+    }
+
     public function currentUserId(): int|string
     {
         $id = $this->auth->guard($this->config->oauth->guard)->id();
