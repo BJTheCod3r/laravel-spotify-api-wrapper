@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-07-30
+
+### Fixed
+
+- Type `UserTokenSet::$expiresAt`, `Token::$expiresAt`, and `SpotifyTokenRefreshed::$expiresAt` as `Carbon\CarbonInterface` rather than the concrete `Illuminate\Support\Carbon`. An application running `Date::use(CarbonImmutable::class)` gets immutable instances out of every `datetime` cast, so `EloquentUserTokenRepository::find()` passed one straight into `UserTokenSet` and threw a `TypeError` — every user-context call failed the moment a token had been stored and read back. Widening only, so callers passing a mutable `Carbon` are unaffected.
+- Mint token expiries through the `Date` facade instead of `Illuminate\Support\Carbon` directly, so the instances the package creates itself — the expiry on a refreshed `UserTokenSet`, on a cached client-credentials `Token`, and on the `SpotifyTokenRefreshed` payload — follow the application's configured date class rather than always being mutable.
+
 ## [0.7.0] - 2026-07-30
 
 ### Added

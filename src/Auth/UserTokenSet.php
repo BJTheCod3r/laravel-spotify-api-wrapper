@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace BjTheCod3r\Spotify\Auth;
 
 use BjTheCod3r\Spotify\Exceptions\AuthenticationException;
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\Date;
 
 final readonly class UserTokenSet
 {
@@ -15,7 +16,7 @@ final readonly class UserTokenSet
     public function __construct(
         public string $accessToken,
         public string $refreshToken,
-        public Carbon $expiresAt,
+        public CarbonInterface $expiresAt,
         public array $scopes,
         public ?string $spotifyUserId = null,
         public string $tokenType = 'Bearer',
@@ -48,7 +49,7 @@ final readonly class UserTokenSet
             refreshToken: isset($payload['refresh_token']) && $payload['refresh_token'] !== ''
                 ? (string) $payload['refresh_token']
                 : $this->refreshToken,
-            expiresAt: Carbon::now()->addSeconds($expiresIn),
+            expiresAt: Date::now()->addSeconds($expiresIn),
             scopes: $scope !== null && $scope !== ''
                 ? self::splitScopes($scope)
                 : $this->scopes,
@@ -89,7 +90,7 @@ final readonly class UserTokenSet
         return new self(
             accessToken: $accessToken,
             refreshToken: $refreshToken,
-            expiresAt: Carbon::now()->addSeconds($expiresIn),
+            expiresAt: Date::now()->addSeconds($expiresIn),
             scopes: self::splitScopes($scope),
             tokenType: (string) ($payload['token_type'] ?? 'Bearer'),
         );
@@ -121,7 +122,7 @@ final readonly class UserTokenSet
         return new self(
             accessToken: (string) ($data['access_token'] ?? ''),
             refreshToken: (string) ($data['refresh_token'] ?? ''),
-            expiresAt: Carbon::createFromTimestamp((int) ($data['expires_at'] ?? 0)),
+            expiresAt: Date::createFromTimestamp((int) ($data['expires_at'] ?? 0)),
             scopes: $scopes,
             spotifyUserId: isset($data['spotify_user_id']) && $data['spotify_user_id'] !== ''
                 ? (string) $data['spotify_user_id']

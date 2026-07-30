@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $refresh_token
  * @property string $token_type
  * @property array<int, string> $scopes
- * @property \Illuminate\Support\Carbon $expires_at
+ * @property \Carbon\CarbonInterface $expires_at
  */
 class SpotifyUserToken extends Model
 {
