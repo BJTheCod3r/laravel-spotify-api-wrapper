@@ -97,6 +97,10 @@ $items = Spotify::playlistItems('74oVZlOSwpy31tSplEWONa')
 $items->items->first()->track->name;
 ```
 
+That call uses app-level credentials, which only reach public playlists. For a
+listener's private or collaborative ones, go through `asUser()` with the
+`playlist-read-private` scope.
+
 To create or edit playlists, see [Creating and editing playlists](#creating-and-editing-playlists).
 Those endpoints act on a listener's account and need user authentication.
 
@@ -398,6 +402,7 @@ $playlist = Spotify::createPlaylist('Top 100 of 2026')
 
 // Add items. Bare ids and open.spotify.com links are normalised to URIs;
 // a bare id is assumed to be a track, so pass episodes as full URIs.
+// Input matching none of those three forms throws ValidationException.
 $snapshot = Spotify::addPlaylistItems($playlist->id, [
     '4iV5W9uYEdYUVa79Axb7Rh',
     'spotify:track:1301WleyT98MSxVHPZCA6M',
@@ -432,10 +437,12 @@ Spotify::removePlaylistItems($playlist->id, ['spotify:track:4iV5W9uYEdYUVa79Axb7
     ->get();
 ```
 
-`createPlaylist()` returns a `Playlist`; the item mutations return the new
+`createPlaylist()` returns a `Playlist`; the four item mutations return the new
 **snapshot id** as a string, and `updatePlaylist()` returns `true` (Spotify
-sends an empty body, so failures throw). Pass a snapshot id back via
-`->snapshotId()` to have Spotify reject a write that raced another edit.
+sends an empty body, so failures throw). `reorderPlaylistItems()` and
+`removePlaylistItems()` also accept a snapshot id via `->snapshotId()`, which
+has Spotify reject a write that raced another edit. Add and replace don't —
+Spotify's endpoints for those take no snapshot.
 
 Every one of these endpoints caps a single request at **100 items**. A
 larger list throws `ValidationException` before the request is sent, so

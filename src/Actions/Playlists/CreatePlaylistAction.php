@@ -34,7 +34,7 @@ class CreatePlaylistAction extends BaseAction
         return $this;
     }
 
-    public function description(?string $description): static
+    public function description(string $description): static
     {
         $this->description = $description;
 
@@ -66,8 +66,9 @@ class CreatePlaylistAction extends BaseAction
     }
 
     /**
-     * Defer resolving the owner until the request is made, so constructing
-     * the action doesn't cost a repository lookup.
+     * Defer resolving the owner until the request is made, so the account id
+     * is only read (and, for older token rows, backfilled from `/me`) when
+     * the call actually goes out.
      *
      * @param callable(): string $resolver
      */

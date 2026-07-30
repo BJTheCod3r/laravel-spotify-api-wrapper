@@ -27,8 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Spotify::replacePlaylistItems($id, $uris)` overwrites the tracklist; an empty list clears it.
   - `Spotify::reorderPlaylistItems($id)` moves a run via `->rangeStart()`, `->insertBefore()`, `->rangeLength()`.
   - `Spotify::removePlaylistItems($id, $uris)` removes every occurrence of each item.
-  - The four item mutations return the resulting snapshot id as a string and accept `->snapshotId()` for optimistic concurrency.
-- Item lists accept bare track ids and `open.spotify.com` links (including `/embed/` and locale-prefixed `/intl-xx/` forms) alongside `spotify:` URIs. A bare id is the one ambiguous case and is assumed to be a track, so episodes must be passed as full URIs. Lists longer than Spotify's 100-item-per-request cap throw `ValidationException` before the request is sent.
+  - The four item mutations return the resulting snapshot id as a string. `reorderPlaylistItems()` and `removePlaylistItems()` also take `->snapshotId()` for optimistic concurrency; Spotify's add and replace endpoints accept no snapshot.
+- Item lists accept bare track ids and `open.spotify.com` links (including `/embed/` and locale-prefixed `/intl-xx/` forms) alongside `spotify:` URIs. A bare id is the one ambiguous case and is assumed to be a track, so episodes must be passed as full URIs. Input in none of those forms throws `ValidationException` rather than reaching Spotify as a malformed URI, as do lists longer than Spotify's 100-item-per-request cap.
 - Add `Spotify::playlistItems($id)` for paging through a playlist's tracklist (`Paginated<PlaylistTrackItem>`), with `->market()`, `->fields()`, `->limit()`, `->offset()`, and `->additionalTypes()`. `Spotify::playlist($id)` only carries the first page inline.
 - Add `OAuthManager::spotifyUserId()`, which resolves the Spotify account id linked to a local user. The capture is best-effort at connect time, so rows stored before the id was captured are backfilled from `/me` on first use.
 

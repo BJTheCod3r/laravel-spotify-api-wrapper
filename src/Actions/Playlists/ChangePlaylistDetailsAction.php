@@ -36,7 +36,10 @@ class ChangePlaylistDetailsAction extends BaseAction
         return $this;
     }
 
-    public function description(?string $description): static
+    /**
+     * Pass an empty string to clear an existing description.
+     */
+    public function description(string $description): static
     {
         $this->description = $description;
 

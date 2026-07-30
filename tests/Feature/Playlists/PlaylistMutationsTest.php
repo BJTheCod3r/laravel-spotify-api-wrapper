@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 use BjTheCod3r\Spotify\Auth\UserTokenSet;
 use BjTheCod3r\Spotify\Contracts\UserTokenRepository;
+use BjTheCod3r\Spotify\Exceptions\AuthenticationException;
 use BjTheCod3r\Spotify\Exceptions\ValidationException;
 use BjTheCod3r\Spotify\Facades\Spotify;
 use BjTheCod3r\Spotify\Resources\Paginated;
 use BjTheCod3r\Spotify\Resources\Playlist;
 use BjTheCod3r\Spotify\Resources\PlaylistTrackItem;
+use BjTheCod3r\Spotify\Tests\Stubs\TestUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
@@ -87,6 +89,44 @@ it('backfills the spotify account id when the stored token predates it', functio
         ->and(app(UserTokenRepository::class)->find(2)->spotifyUserId)->toBe('spotify-user-2');
 });
 
+it('creates on another account with forUser', function (): void {
+    Http::fake([
+        'api.spotify.com/v1/users/other-account/playlists' => Http::response(fakePlaylist(['id' => 'pl3']), 201),
+    ]);
+
+    $playlist = Spotify::asUser(1)->createPlaylist('Gift')->forUser('other-account')->get();
+
+    expect($playlist->id)->toBe('pl3');
+
+    Http::assertSent(fn ($request): bool => $request->url() === 'https://api.spotify.com/v1/users/other-account/playlists');
+});
+
+it('resolves the owner from the auth guard when no user is bound', function (): void {
+    $this->actingAs(new TestUser(id: 1));
+
+    Http::fake([
+        'api.spotify.com/v1/users/spotify-user-1/playlists' => Http::response(fakePlaylist(), 201),
+    ]);
+
+    expect(Spotify::createPlaylist('Top 100')->get()->id)->toBe('pl1');
+});
+
+it('fails when the connected account has no resolvable spotify id', function (): void {
+    app(UserTokenRepository::class)->store(3, new UserTokenSet(
+        accessToken: 'idless-access',
+        refreshToken: 'idless-refresh',
+        expiresAt: Carbon::now()->addHour(),
+        scopes: ['playlist-modify-private'],
+        spotifyUserId: null,
+    ));
+
+    Http::fake([
+        'api.spotify.com/v1/me' => Http::response(['type' => 'user']),
+    ]);
+
+    Spotify::asUser(3)->createPlaylist('Nowhere')->get();
+})->throws(AuthenticationException::class, 'Could not resolve the Spotify account id');
+
 it('refuses a collaborative public playlist', function (): void {
     Spotify::asUser(1)->createPlaylist('Shared')->collaborative()->public()->get();
 })->throws(ValidationException::class, 'cannot be public');
@@ -125,19 +165,28 @@ it('adds items at a position', function (): void {
         'api.spotify.com/v1/playlists/pl1/tracks' => Http::response(['snapshot_id' => 'snap-3']),
     ]);
 
-    Spotify::asUser(1)->addPlaylistItems('pl1', 'track-a')->position(0)->get();
+    Spotify::asUser(1)->addPlaylistItems('pl1', '4iV5W9uYEdYUVa79Axb7Rh')->position(0)->get();
 
     Http::assertSent(fn ($request): bool => $request->data() === [
-        'uris' => ['spotify:track:track-a'],
+        'uris' => ['spotify:track:4iV5W9uYEdYUVa79Axb7Rh'],
         'position' => 0,
     ]);
 });
 
 it('refuses more than 100 items in one request', function (): void {
-    $uris = array_map(static fn (int $i): string => "track-{$i}", range(1, 101));
+    $uris = array_map(
+        static fn (int $i): string => str_pad((string) $i, 22, 'a', STR_PAD_LEFT),
+        range(1, 101),
+    );
 
     Spotify::asUser(1)->addPlaylistItems('pl1', $uris)->get();
 })->throws(ValidationException::class, 'at most 100 items');
+
+it('refuses input that is neither an id, a uri, nor a spotify link', function (): void {
+    Spotify::asUser(1)->addPlaylistItems('pl1', [
+        'https://open.spotify.com/album/1301WleyT98MSxVHPZCA6M',
+    ])->get();
+})->throws(ValidationException::class, 'is not a track id');
 
 it('refuses an empty add', function (): void {
     Spotify::asUser(1)->addPlaylistItems('pl1', [])->get();
@@ -148,12 +197,17 @@ it('replaces the whole tracklist', function (): void {
         'api.spotify.com/v1/playlists/pl1/tracks' => Http::response(['snapshot_id' => 'snap-4']),
     ]);
 
-    $snapshot = Spotify::asUser(1)->replacePlaylistItems('pl1', ['track-b', 'track-a'])->get();
+    $snapshot = Spotify::asUser(1)
+        ->replacePlaylistItems('pl1', ['1301WleyT98MSxVHPZCA6M', '4iV5W9uYEdYUVa79Axb7Rh'])
+        ->get();
 
     expect($snapshot)->toBe('snap-4');
 
     Http::assertSent(fn ($request): bool => $request->method() === 'PUT'
-        && $request->data() === ['uris' => ['spotify:track:track-b', 'spotify:track:track-a']]);
+        && $request->data() === ['uris' => [
+            'spotify:track:1301WleyT98MSxVHPZCA6M',
+            'spotify:track:4iV5W9uYEdYUVa79Axb7Rh',
+        ]]);
 });
 
 it('clears a playlist with an empty replace', function (): void {
@@ -200,7 +254,7 @@ it('removes items by uri', function (): void {
     ]);
 
     $snapshot = Spotify::asUser(1)
-        ->removePlaylistItems('pl1', ['track-a'])
+        ->removePlaylistItems('pl1', ['4iV5W9uYEdYUVa79Axb7Rh'])
         ->snapshotId('snap-6')
         ->get();
 
@@ -208,7 +262,7 @@ it('removes items by uri', function (): void {
 
     Http::assertSent(fn ($request): bool => $request->method() === 'DELETE'
         && $request->data() === [
-            'tracks' => [['uri' => 'spotify:track:track-a']],
+            'tracks' => [['uri' => 'spotify:track:4iV5W9uYEdYUVa79Axb7Rh']],
             'snapshot_id' => 'snap-6',
         ]);
 });
