@@ -85,6 +85,21 @@ Search playlists hydrate as `SimplifiedPlaylist` summaries. Direct playlist look
 `Playlist` so `followers` and paginated `tracks.items` are only present on the
 endpoint that returns them.
 
+The lookup above carries only the first page of items inline. Page past it with
+`playlistItems()`, which returns a `Paginated` of `PlaylistTrackItem`:
+
+```php
+$items = Spotify::playlistItems('74oVZlOSwpy31tSplEWONa')
+    ->limit(50)
+    ->offset(50)
+    ->get();
+
+$items->items->first()->track->name;
+```
+
+To create or edit playlists, see [Creating and editing playlists](#creating-and-editing-playlists).
+Those endpoints act on a listener's account and need user authentication.
+
 ### Get a single resource by ID
 
 Direct lookups exist for every searchable resource, plus user profiles. They all
@@ -359,6 +374,89 @@ Spotify::asUser($userId)->me()->playlists()->get();
 
 All `me()` endpoints that return collections come back as the same `Paginated` resource the rest of the package uses. The `me/tracks`, `me/albums`, `me/shows`, `me/episodes`, and `me/player/recently-played` envelopes are unwrapped — the items collection contains the inner `Track` / `Album` / etc. directly. The `added_at` / `played_at` timestamps from those envelopes are not exposed in v0.3.
 
+### Creating and editing playlists
+
+Playlist writes act on the connected listener's account, so they need the
+modify scopes. They aren't in the defaults, so request them at connect time:
+
+```blade
+<a href="{{ route('spotify.connect') }}?scopes=playlist-modify-public,playlist-modify-private">
+    Connect Spotify
+</a>
+```
+
+`playlist-modify-public` covers public playlists, `playlist-modify-private`
+covers private and collaborative ones. Spotify answers `403` when the granted
+scopes don't cover the playlist you're writing to.
+
+```php
+// Create. The owner defaults to the connected account.
+$playlist = Spotify::createPlaylist('Top 100 of 2026')
+    ->description('Generated from my ratings')
+    ->public(false)
+    ->get();
+
+// Add items. Bare ids and open.spotify.com links are normalised to URIs;
+// a bare id is assumed to be a track, so pass episodes as full URIs.
+$snapshot = Spotify::addPlaylistItems($playlist->id, [
+    '4iV5W9uYEdYUVa79Axb7Rh',
+    'spotify:track:1301WleyT98MSxVHPZCA6M',
+    'https://open.spotify.com/track/7ouMYWpwJ422jRcDASZB7P',
+])->get();
+
+// Insert at the top instead of appending.
+Spotify::addPlaylistItems($playlist->id, $uris)->position(0)->get();
+
+// Rename / re-describe / flip visibility.
+Spotify::updatePlaylist($playlist->id)
+    ->name('Top 100: final cut')
+    ->description('Reordered after another listen')
+    ->get();
+
+// Overwrite the tracklist wholesale. Simplest way to persist an edited
+// ordering without diffing it. An empty array clears the playlist.
+Spotify::replacePlaylistItems($playlist->id, $uris)->get();
+
+// Or move a run of items. insert_before is evaluated against the original
+// indices, so moving an item *down* means targeting the slot after it.
+Spotify::reorderPlaylistItems($playlist->id)
+    ->rangeStart(9)
+    ->insertBefore(0)
+    ->rangeLength(1)
+    ->snapshotId($snapshot)
+    ->get();
+
+// Remove every occurrence of these items.
+Spotify::removePlaylistItems($playlist->id, ['spotify:track:4iV5W9uYEdYUVa79Axb7Rh'])
+    ->snapshotId($snapshot)
+    ->get();
+```
+
+`createPlaylist()` returns a `Playlist`; the item mutations return the new
+**snapshot id** as a string, and `updatePlaylist()` returns `true` (Spotify
+sends an empty body, so failures throw). Pass a snapshot id back via
+`->snapshotId()` to have Spotify reject a write that raced another edit.
+
+Every one of these endpoints caps a single request at **100 items**. A
+larger list throws `ValidationException` before the request is sent, so
+chunk it:
+
+```php
+foreach (array_chunk($uris, 100) as $chunk) {
+    Spotify::addPlaylistItems($playlist->id, $chunk)->get();
+}
+```
+
+As with reads, `asUser()` targets a specific listener from a job or worker:
+
+```php
+Spotify::asUser($userId)->createPlaylist('Top 100')->get();
+```
+
+Creation addresses the account by its Spotify user id, which the package
+captured when the listener connected. Override it with `->forUser($spotifyUserId)`
+when creating on some other account you hold a token for.
+
 ### Token refresh & 401 handling
 
 Access tokens are refreshed transparently when stale. A `401` from any API call forces an out-of-band refresh and retries the original request once, so a token revoked between issuance and use is recovered automatically.
@@ -430,13 +528,14 @@ Http::fake([
 - [x] Album tracks (paginated)
 - [x] Artist top tracks
 - [x] Episodes, Shows, Audiobooks (Get-by-ID)
-- [x] Playlists (Get-by-ID, read-only)
+- [x] Playlists (Get-by-ID, paginated items)
 - [x] Users — Authorization Code + PKCE, `me/*` reads
+- [x] Playlist mutations (create / edit details / add / replace / reorder / remove)
 - [ ] Tracks (audio features / analysis)
 - [ ] Browse (categories, new releases, featured playlists)
 - [ ] Markets, Genres
 - [ ] Player — playback control on the user's active device
-- [ ] Playlist mutations (create / reorder / add-remove items)
+- [ ] Playlist cover images
 
 ## License
 

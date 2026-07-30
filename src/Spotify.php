@@ -10,7 +10,14 @@ use BjTheCod3r\Spotify\Actions\Artists\GetArtistAction;
 use BjTheCod3r\Spotify\Actions\Artists\GetArtistTopTracksAction;
 use BjTheCod3r\Spotify\Actions\Audiobooks\GetAudiobookAction;
 use BjTheCod3r\Spotify\Actions\Episodes\GetEpisodeAction;
+use BjTheCod3r\Spotify\Actions\Playlists\AddPlaylistItemsAction;
+use BjTheCod3r\Spotify\Actions\Playlists\ChangePlaylistDetailsAction;
+use BjTheCod3r\Spotify\Actions\Playlists\CreatePlaylistAction;
 use BjTheCod3r\Spotify\Actions\Playlists\GetPlaylistAction;
+use BjTheCod3r\Spotify\Actions\Playlists\GetPlaylistItemsAction;
+use BjTheCod3r\Spotify\Actions\Playlists\RemovePlaylistItemsAction;
+use BjTheCod3r\Spotify\Actions\Playlists\ReorderPlaylistItemsAction;
+use BjTheCod3r\Spotify\Actions\Playlists\ReplacePlaylistItemsAction;
 use BjTheCod3r\Spotify\Actions\Search\SearchAction;
 use BjTheCod3r\Spotify\Actions\Search\SearchAlbumsAction;
 use BjTheCod3r\Spotify\Actions\Search\SearchArtistsAction;
@@ -74,11 +81,7 @@ class Spotify
      */
     public function me(): MeBuilder
     {
-        if ($this->boundUserId !== null) {
-            return new MeBuilder($this->client);
-        }
-
-        return new MeBuilder($this->oauth->clientFor($this->oauth->currentUserId()));
+        return new MeBuilder($this->userClient());
     }
 
     /**
@@ -161,6 +164,57 @@ class Spotify
         return (new GetPlaylistAction($this->client))->id($id);
     }
 
+    public function playlistItems(string $id): GetPlaylistItemsAction
+    {
+        return (new GetPlaylistItemsAction($this->client))->id($id);
+    }
+
+    /**
+     * Create a playlist on the connected user's account. Requires the
+     * `playlist-modify-public` / `playlist-modify-private` scope, and the
+     * owner defaults to whichever user this instance acts as.
+     */
+    public function createPlaylist(string $name): CreatePlaylistAction
+    {
+        return (new CreatePlaylistAction($this->userClient()))
+            ->name($name)
+            ->resolveOwnerUsing(fn (): string => $this->oauth->spotifyUserId($this->boundUserId));
+    }
+
+    public function updatePlaylist(string $id): ChangePlaylistDetailsAction
+    {
+        return (new ChangePlaylistDetailsAction($this->userClient()))->id($id);
+    }
+
+    /**
+     * @param list<string>|string $uris Track URIs, ids, or open.spotify.com links.
+     */
+    public function addPlaylistItems(string $id, array|string $uris = []): AddPlaylistItemsAction
+    {
+        return (new AddPlaylistItemsAction($this->userClient()))->id($id)->uris($uris);
+    }
+
+    /**
+     * @param list<string>|string $uris Replaces the playlist's contents; empty clears it.
+     */
+    public function replacePlaylistItems(string $id, array|string $uris = []): ReplacePlaylistItemsAction
+    {
+        return (new ReplacePlaylistItemsAction($this->userClient()))->id($id)->uris($uris);
+    }
+
+    public function reorderPlaylistItems(string $id): ReorderPlaylistItemsAction
+    {
+        return (new ReorderPlaylistItemsAction($this->userClient()))->id($id);
+    }
+
+    /**
+     * @param list<string>|string $uris Track URIs, ids, or open.spotify.com links.
+     */
+    public function removePlaylistItems(string $id, array|string $uris = []): RemovePlaylistItemsAction
+    {
+        return (new RemovePlaylistItemsAction($this->userClient()))->id($id)->uris($uris);
+    }
+
     public function album(string $id): GetAlbumAction
     {
         return (new GetAlbumAction($this->client))->id($id);
@@ -204,5 +258,19 @@ class Spotify
     public function user(string $id): GetUserAction
     {
         return (new GetUserAction($this->client))->id($id);
+    }
+
+    /**
+     * Client for endpoints that only work in user context. Uses the user
+     * this instance is bound to (via asUser); otherwise resolves the
+     * current user via the configured auth guard.
+     */
+    protected function userClient(): SpotifyClient
+    {
+        if ($this->boundUserId !== null) {
+            return $this->client;
+        }
+
+        return $this->oauth->clientFor($this->oauth->currentUserId());
     }
 }
